@@ -1,0 +1,18 @@
+model {
+  for(i in 1:n) {
+    L[i] ~ dnorm(mu[i], tau)
+    ypp[i] ~ dnorm(mu[i], tau)
+    mu[i] <- whichmodel[1]*L_inf*(1-exp(-k*(a[i]-t0))) +      # VBM - VB
+               whichmodel[2]*L_inf*(1-exp(-k*(a[i]-t0)))^P +    # GGM - generalized VB
+               whichmodel[3]*L_inf/(1+exp(-k*(a[i]-t0))) +      # LGM - logistic growth model
+               whichmodel[4]*L_inf*exp((-1/k)*exp(-k*(a[i]-t0))) # PGM - Gompertz
+  }
+
+  tau <- pow(sig, -2)
+  sig ~ dunif(0, 1000)
+  L_inf ~ dnorm(400, .0001)
+  k ~ dnorm(0,.1)T(0,)
+  t0 ~ dnorm(0,.01)T(,6)#<-0#
+  P ~ dlnorm(0,1)
+  
+}

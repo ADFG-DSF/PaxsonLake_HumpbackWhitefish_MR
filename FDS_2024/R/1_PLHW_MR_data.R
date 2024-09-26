@@ -120,7 +120,7 @@ consistencytest(n1 = table(Event1$Area[Event1$`Fork Length (mm)` >= 400]),
                 n2 = c(0, 0, 0, table(Event2$Area[Event2$`Fork Length Corrected (mm)` >= 400])),
                 m2strata1 = as.numeric(as.factor(Event1_recaps$Area[Event1_recaps$`Fork Length (mm)` >= 400]))+1,
                 m2strata2 = rep(4, sum(Event1_recaps$`Fork Length (mm)` >= 400)))
-
+## seems to match (at least for the "small" stratum)
 
 
 ### reproduce abundance estimation
