@@ -43,22 +43,22 @@ with(spawn_sample,
 
 
 
-## trying multi-model
+## trying multi-model   - LOGNORMAL ERROR
 cat('model {
   for(i in 1:n) {
     for(j in 1:4) {
-      L[i,j] ~ dnorm(mu[i,j], tau[j])
-      ypp[i,j] ~ dnorm(mu[i,j], tau[j])
+      L[i,j] ~ dlnorm(logmu[i,j], tau[j])
+      ypp[i,j] ~ dlnorm(logmu[i,j], tau[j])
     }
-    mu[i,1] <- L_inf[1]*(1-exp(-k[1]*(a[i]-t0[1])))      # VBM - VB
-    mu[i,2] <- L_inf[2]*(1-exp(-k[2]*(a[i]-t0[2])))^P[2]    # GGM - generalized VB
-    mu[i,3] <- L_inf[3]/(1+exp(-k[3]*(a[i]-t0[3])))      # LGM - logistic growth model
-    mu[i,4] <- L_inf[4]*exp((-1/k[4])*exp(-k[4]*(a[i]-t0[4]))) # PGM - Gompertz
+    logmu[i,1] <- log(L_inf[1]*(1-exp(-k[1]*(a[i]-t0[1]))))      # VBM - VB
+    logmu[i,2] <- log(L_inf[2]*(1-exp(-k[2]*(a[i]-t0[2])))^P[2])    # GGM - generalized VB
+    logmu[i,3] <- log(L_inf[3]/(1+exp(-k[3]*(a[i]-t0[3]))))      # LGM - logistic growth model
+    logmu[i,4] <- log(L_inf[4]*exp((-1/k[4])*exp(-k[4]*(a[i]-t0[4])))) # PGM - Gompertz
   }
 
   for(j in 1:4) {
     tau[j] <- pow(sig[j], -2)
-    sig[j] ~ dunif(0, 1000)
+    sig[j] ~ dunif(0, 10)#00)
     L_inf[j] ~ dnorm(400, .0001)
     k[j] ~ dnorm(0,.1)T(0,)
     t0[j] ~ dnorm(0,.01)T(,6)#<-0#
@@ -66,86 +66,54 @@ cat('model {
   }
   
   for(ifit in 1:nfit) {
-    mufit[ifit,1] <- L_inf[1]*(1-exp(-k[1]*(agefit[ifit]-t0[1])))      # VBM - VB
-    mufit[ifit,2] <- L_inf[2]*(1-exp(-k[2]*(agefit[ifit]-t0[2])))^P[2]    # GGM - generalized VB
-    mufit[ifit,3] <- L_inf[3]/(1+exp(-k[3]*(agefit[ifit]-t0[3])))      # LGM - logistic growth model
-    mufit[ifit,4] <- L_inf[4]*exp((-1/k[4])*exp(-k[4]*(agefit[ifit]-t0[4]))) # PGM - Gompertz
+    logmufit[ifit,1] <- log(L_inf[1]*(1-exp(-k[1]*(agefit[ifit]-t0[1]))))      # VBM - VB
+    logmufit[ifit,2] <- log(L_inf[2]*(1-exp(-k[2]*(agefit[ifit]-t0[2])))^P[2])    # GGM - generalized VB
+    logmufit[ifit,3] <- log(L_inf[3]/(1+exp(-k[3]*(agefit[ifit]-t0[3]))))      # LGM - logistic growth model
+    logmufit[ifit,4] <- log(L_inf[4]*exp((-1/k[4])*exp(-k[4]*(agefit[ifit]-t0[4])))) # PGM - Gompertz
     for(j in 1:4) {
-      ppfit[ifit,j] ~ dnorm(mufit[ifit,j], tau[j])
+      ppfit[ifit,j] ~ dlnorm(logmufit[ifit,j], tau[j])
+      mufit[ifit,j] <- exp(logmufit[ifit,j])
     }
   }
   
-}', file="lvb_jags2_multi_t0_free")
+}', file="lvb_jags2_multi_t0_free_lnorm")
 
 cat('model {
   for(i in 1:n) {
     for(j in 1:4) {
-      L[i,j] ~ dnorm(mu[i,j], tau[j])
-      ypp[i,j] ~ dnorm(mu[i,j], tau[j])
+      L[i,j] ~ dlnorm(logmu[i,j], tau[j])
+      ypp[i,j] ~ dlnorm(logmu[i,j], tau[j])
     }
-    mu[i,1] <- L_inf[1]*(1-exp(-k[1]*(a[i]-t0[1])))      # VBM - VB
-    mu[i,2] <- L_inf[2]*(1-exp(-k[2]*(a[i]-t0[2])))^P[2]    # GGM - generalized VB
-    mu[i,3] <- L_inf[3]/(1+exp(-k[3]*(a[i]-t0[3])))      # LGM - logistic growth model
-    mu[i,4] <- L_inf[4]*exp((-1/k[4])*exp(-k[4]*(a[i]-t0[4]))) # PGM - Gompertz
+    logmu[i,1] <- log(L_inf[1]*(1-exp(-k[1]*(a[i]-t0[1]))))      # VBM - VB
+    logmu[i,2] <- log(L_inf[2]*(1-exp(-k[2]*(a[i]-t0[2])))^P[2])    # GGM - generalized VB
+    logmu[i,3] <- log(L_inf[3]/(1+exp(-k[3]*(a[i]-t0[3]))))      # LGM - logistic growth model
+    logmu[i,4] <- log(L_inf[4]*exp((-1/k[4])*exp(-k[4]*(a[i]-t0[4])))) # PGM - Gompertz
   }
 
   for(j in 1:4) {
     tau[j] <- pow(sig[j], -2)
-    sig[j] ~ dunif(0, 1000)
+    sig[j] ~ dunif(0, 10)#00)
     L_inf[j] ~ dnorm(400, .0001)
     k[j] ~ dnorm(0,.1)T(0,)
-    t0[j] <- 0 #~ dnorm(0,.001)T(,6)#
+    t0[j] <-0 #~ dnorm(0,.01)T(,6)#
     P[j] ~ dlnorm(0,1)
   }
   
   for(ifit in 1:nfit) {
-    mufit[ifit,1] <- L_inf[1]*(1-exp(-k[1]*(agefit[ifit]-t0[1])))      # VBM - VB
-    mufit[ifit,2] <- L_inf[2]*(1-exp(-k[2]*(agefit[ifit]-t0[2])))^P[2]    # GGM - generalized VB
-    mufit[ifit,3] <- L_inf[3]/(1+exp(-k[3]*(agefit[ifit]-t0[3])))      # LGM - logistic growth model
-    mufit[ifit,4] <- L_inf[4]*exp((-1/k[4])*exp(-k[4]*(agefit[ifit]-t0[4]))) # PGM - Gompertz
+    logmufit[ifit,1] <- log(L_inf[1]*(1-exp(-k[1]*(agefit[ifit]-t0[1]))))      # VBM - VB
+    logmufit[ifit,2] <- log(L_inf[2]*(1-exp(-k[2]*(agefit[ifit]-t0[2])))^P[2])    # GGM - generalized VB
+    logmufit[ifit,3] <- log(L_inf[3]/(1+exp(-k[3]*(agefit[ifit]-t0[3]))))      # LGM - logistic growth model
+    logmufit[ifit,4] <- log(L_inf[4]*exp((-1/k[4])*exp(-k[4]*(agefit[ifit]-t0[4])))) # PGM - Gompertz
     for(j in 1:4) {
-      ppfit[ifit,j] ~ dnorm(mufit[ifit,j], tau[j])
+      ppfit[ifit,j] ~ dlnorm(logmufit[ifit,j], tau[j])
+      mufit[ifit,j] <- exp(logmufit[ifit,j])
     }
   }
-  
-}', file="lvb_jags2_multi_t0_0")
+
+}', file="lvb_jags2_multi_t0_0_lnorm")
 
 
 
-# ## trying multi-model  --- LOGNORMAL ERROR
-# cat('model {
-#   for(i in 1:n) {
-#     for(j in 1:4) {
-#       L[i,j] ~ dlnorm(logmu[i,j], tau[j])
-#       ypp[i,j] ~ dlnorm(logmu[i,j], tau[j])
-#       mu[i,j] <- exp(logmu[i,j])
-#     }
-#     logmu[i,1] <- log(L_inf[1]*(1-exp(-k[1]*(a[i]-t0[1]))))      # VBM - VB
-#     logmu[i,2] <- log(L_inf[2]*(1-exp(-k[2]*(a[i]-t0[2])))^P[2])    # GGM - generalized VB
-#     logmu[i,3] <- log(L_inf[3]/(1+exp(-k[3]*(a[i]-t0[3]))))      # LGM - logistic growth model
-#     logmu[i,4] <-log( L_inf[4]*exp((-1/k[4])*exp(-k[4]*(a[i]-t0[4])))) # PGM - Gompertz
-#   }
-# 
-#   for(j in 1:4) {
-#     tau[j] <- pow(sig[j], -2)
-#     sig[j] ~ dunif(0, 10)#00)
-#     L_inf[j] ~ dnorm(400, .0001)
-#     k[j] ~ dnorm(0,.1)T(0,)
-#     t0[j] ~ dnorm(0,.001)T(,6)#<-0#
-#     P[j] ~ dlnorm(0,1)
-#   }
-#   
-#   for(ifit in 1:nfit) {
-#     mufit[ifit,1] <- L_inf[1]*(1-exp(-k[1]*(agefit[ifit]-t0[1])))      # VBM - VB
-#     mufit[ifit,2] <- L_inf[2]*(1-exp(-k[2]*(agefit[ifit]-t0[2])))^P[2]    # GGM - generalized VB
-#     mufit[ifit,3] <- L_inf[3]/(1+exp(-k[3]*(agefit[ifit]-t0[3])))      # LGM - logistic growth model
-#     mufit[ifit,4] <- L_inf[4]*exp((-1/k[4])*exp(-k[4]*(agefit[ifit]-t0[4]))) # PGM - Gompertz
-#     for(j in 1:4) {
-#       ppfit[ifit,j] ~ dnorm(mufit[ifit,j], tau[j])
-#     }
-#   }
-#   
-# }', file="lvb_jags2_multi")
 
 modelnames <- c("VB", "Generalized VB", "Logistic", "Gompertz")
 
@@ -170,35 +138,35 @@ run_anyway <- FALSE  # set this to TRUE to run the models anyway
 
 allfiles <- list.files(recursive=TRUE)
 
-if(run_anyway | !("FDS_2024/posts/lvb_jags_out2_multi_t0_free.Rdata" %in% allfiles)) {
+if(run_anyway | !("FDS_2024/posts/lvb_jags_out2_multi_t0_free_lnorm.Rdata" %in% allfiles)) {
   
   # JAGS controls - t0 free
-  niter <- 1000*1000 # 56 min at 1000k
+  niter <- 1000*1000 # 49 min at 1000k
   ncores <- min(parallel::detectCores()-1, 10)
   
   {
     tstart <- Sys.time()
     print(tstart)
-    lvb_jags_out2_multi_t0_free <- jagsUI::jags(model.file="lvb_jags2_multi_t0_free", data=lvb_data2_multi,
-                                                parameters.to.save=c("mu","sig","L_inf","k","t0","ypp","P","mufit","ppfit","logmu","whichmodel","pp"),
-                                                n.chains=ncores, parallel=T, n.iter=niter,
-                                                n.burnin=niter/2, n.thin=niter/2000)
+    lvb_jags_out2_multi_t0_free_lnorm <- jagsUI::jags(model.file="lvb_jags2_multi_t0_free_lnorm", data=lvb_data2_multi,
+                                                      parameters.to.save=c("mu","sig","L_inf","k","t0","ypp","P","mufit","ppfit","logmu","whichmodel","pp"),
+                                                      n.chains=ncores, parallel=T, n.iter=niter,
+                                                      n.burnin=niter/2, n.thin=niter/2000)
     print(Sys.time() - tstart)
   }
-  nbyname(lvb_jags_out2_multi_t0_free)
-  plotRhats(lvb_jags_out2_multi_t0_free)
+  nbyname(lvb_jags_out2_multi_t0_free_lnorm)
+  plotRhats(lvb_jags_out2_multi_t0_free_lnorm)
   par(mfrow=c(2,2))
-  traceworstRhat(lvb_jags_out2_multi_t0_free)
+  traceworstRhat(lvb_jags_out2_multi_t0_free_lnorm)
   
-  save(lvb_jags_out2_multi_t0_free, file="FDS_2024/posts/lvb_jags_out2_multi_t0_free.Rdata")
+  # save(lvb_jags_out2_multi_t0_free_lnorm, file="FDS_2024/posts/lvb_jags_out2_multi_t0_free_lnorm.Rdata")
 } else {
-  load(file="FDS_2024/posts/lvb_jags_out2_multi_t0_free.Rdata")
+  load(file="FDS_2024/posts/lvb_jags_out2_multi_t0_free_lnorm.Rdata")
 }
 
 
 
 
-if(run_anyway | !("FDS_2024/posts/lvb_jags_out2_multi_t0_0.Rdata" %in% allfiles)) {
+if(run_anyway | !("FDS_2024/posts/lvb_jags_out2_multi_t0_0_lnorm.Rdata" %in% allfiles)) {
   
   # JAGS controls - t0 set to zero
   niter <- 500*1000 # 18 min at 500k
@@ -207,20 +175,20 @@ if(run_anyway | !("FDS_2024/posts/lvb_jags_out2_multi_t0_0.Rdata" %in% allfiles)
   {
     tstart <- Sys.time()
     print(tstart)
-    lvb_jags_out2_multi_t0_0 <- jagsUI::jags(model.file="lvb_jags2_multi_t0_0", data=lvb_data2_multi,
-                                             parameters.to.save=c("mu","sig","L_inf","k","t0","ypp","P","mufit","ppfit","logmu","whichmodel","pp"),
-                                             n.chains=ncores, parallel=T, n.iter=niter,
-                                             n.burnin=niter/2, n.thin=niter/2000)
+    lvb_jags_out2_multi_t0_0_lnorm <- jagsUI::jags(model.file="lvb_jags2_multi_t0_0_lnorm", data=lvb_data2_multi,
+                                                   parameters.to.save=c("mu","sig","L_inf","k","t0","ypp","P","mufit","ppfit","logmu","whichmodel","pp"),
+                                                   n.chains=ncores, parallel=T, n.iter=niter,
+                                                   n.burnin=niter/2, n.thin=niter/2000)
     print(Sys.time() - tstart)
   }
-  nbyname(lvb_jags_out2_multi_t0_0)
-  plotRhats(lvb_jags_out2_multi_t0_0)
+  nbyname(lvb_jags_out2_multi_t0_0_lnorm)
+  plotRhats(lvb_jags_out2_multi_t0_0_lnorm)
   par(mfrow=c(2,2))
-  traceworstRhat(lvb_jags_out2_multi_t0_0)
+  traceworstRhat(lvb_jags_out2_multi_t0_0_lnorm)
   
-  save(lvb_jags_out2_multi_t0_0, file="FDS_2024/posts/lvb_jags_out2_multi_t0_0.Rdata")
+  # save(lvb_jags_out2_multi_t0_0_lnorm, file="FDS_2024/posts/lvb_jags_out2_multi_t0_0_lnorm.Rdata")
 } else {
-  load(file="FDS_2024/posts/lvb_jags_out2_multi_t0_0.Rdata")
+  load(file="FDS_2024/posts/lvb_jags_out2_multi_t0_0_lnorm.Rdata")
 }
 
 
@@ -228,80 +196,81 @@ if(run_anyway | !("FDS_2024/posts/lvb_jags_out2_multi_t0_0.Rdata" %in% allfiles)
 par(mfrow=c(2,2))
 for(j in 1:4) {   # t0 free
   plot(lvbdata$Age, lvbdata$Length, main=paste(modelnames[j], "- t0 free"))
-  envelope(lvb_jags_out2_multi_t0_free$sims.list$mufit[,,j], x=lvb_data2_multi$agefit, add=T, col=j+1)
+  envelope(lvb_jags_out2_multi_t0_free_lnorm$sims.list$mufit[,,j], x=lvb_data2_multi$agefit, add=T, col=j+1)
 }
 for(j in 1:4) {   # t0 set to zero
   plot(lvbdata$Age, lvbdata$Length, main=paste(modelnames[j], "- t0 set to zero"))
-  envelope(lvb_jags_out2_multi_t0_0$sims.list$mufit[,,j], x=lvb_data2_multi$agefit, add=T, col=j+1)
+  envelope(lvb_jags_out2_multi_t0_0_lnorm$sims.list$mufit[,,j], x=lvb_data2_multi$agefit, add=T, col=j+1)
 }
 
 for(j in 1:4) {   # t0 free
   plot(lvbdata$Age, lvbdata$Length, main=paste(modelnames[j], "- t0 free"))
-  envelope(lvb_jags_out2_multi_t0_free$sims.list$ppfit[,,j], x=lvb_data2_multi$agefit, add=T, col=j+1)
+  envelope(lvb_jags_out2_multi_t0_free_lnorm$sims.list$ppfit[,,j], x=lvb_data2_multi$agefit, add=T, col=j+1)
 }
 for(j in 1:4) {   # t0 set to zero
   plot(lvbdata$Age, lvbdata$Length, main=paste(modelnames[j], "- t0 set to zero"))
-  envelope(lvb_jags_out2_multi_t0_0$sims.list$ppfit[,,j], x=lvb_data2_multi$agefit, add=T, col=j+1)
+  envelope(lvb_jags_out2_multi_t0_0_lnorm$sims.list$ppfit[,,j], x=lvb_data2_multi$agefit, add=T, col=j+1)
 }
 
 for(j in 1:4) {   # t0 free
-  qq_postpred(ypp = lvb_jags_out2_multi_t0_free$sims.list$ypp[,,j], y=lvbdata$Length, 
+  qq_postpred(ypp = lvb_jags_out2_multi_t0_free_lnorm$sims.list$ypp[,,j], y=lvbdata$Length, 
               main=paste(modelnames[j], "- t0 free"))
 }
 for(j in 1:4) {   # t0 set to zero
-  qq_postpred(ypp = lvb_jags_out2_multi_t0_0$sims.list$ypp[,,j], y=lvbdata$Length, 
+  qq_postpred(ypp = lvb_jags_out2_multi_t0_0_lnorm$sims.list$ypp[,,j], y=lvbdata$Length, 
               main=paste(modelnames[j], "- t0 set to zero"))
 }
 
 par(mfrow=c(2,2))   
 # t0 free
-caterpillar(lvb_jags_out2_multi_t0_free, p="sig", xax=modelnames, xlab="t0 free")
-caterpillar(lvb_jags_out2_multi_t0_free, p="k", xax=modelnames, xlab="t0 free")
-caterpillar(lvb_jags_out2_multi_t0_free, p="t0", xax=modelnames, xlab="t0 free")
-caterpillar(lvb_jags_out2_multi_t0_free, p="L_inf", xax=modelnames, xlab="t0 free")
+caterpillar(lvb_jags_out2_multi_t0_free_lnorm, p="sig", xax=modelnames, xlab="t0 free")
+caterpillar(lvb_jags_out2_multi_t0_free_lnorm, p="k", xax=modelnames, xlab="t0 free")
+caterpillar(lvb_jags_out2_multi_t0_free_lnorm, p="t0", xax=modelnames, xlab="t0 free")
+caterpillar(lvb_jags_out2_multi_t0_free_lnorm, p="L_inf", xax=modelnames, xlab="t0 free")
 
 # t0 set to zero
-caterpillar(lvb_jags_out2_multi_t0_0, p="sig", xax=modelnames, xlab="t0 set to zero")
-caterpillar(lvb_jags_out2_multi_t0_0, p="k", xax=modelnames, xlab="t0 set to zero")
-caterpillar(lvb_jags_out2_multi_t0_0, p="t0", xax=modelnames, xlab="t0 set to zero")
-caterpillar(lvb_jags_out2_multi_t0_0, p="L_inf", xax=modelnames, xlab="t0 set to zero")
+caterpillar(lvb_jags_out2_multi_t0_0_lnorm, p="sig", xax=modelnames, xlab="t0 set to zero")
+caterpillar(lvb_jags_out2_multi_t0_0_lnorm, p="k", xax=modelnames, xlab="t0 set to zero")
+caterpillar(lvb_jags_out2_multi_t0_0_lnorm, p="t0", xax=modelnames, xlab="t0 set to zero")
+caterpillar(lvb_jags_out2_multi_t0_0_lnorm, p="L_inf", xax=modelnames, xlab="t0 set to zero")
 
-comparecat(list(lvb_jags_out2_multi_t0_free, lvb_jags_out2_multi_t0_0), p="sig")
-comparecat(list(lvb_jags_out2_multi_t0_free, lvb_jags_out2_multi_t0_0), p="k")
-comparecat(list(lvb_jags_out2_multi_t0_free, lvb_jags_out2_multi_t0_0), p="t0")
-comparecat(list(lvb_jags_out2_multi_t0_free, lvb_jags_out2_multi_t0_0), p="L_inf")
+comparecat(list(lvb_jags_out2_multi_t0_free_lnorm, lvb_jags_out2_multi_t0_0_lnorm), p="sig")
+comparecat(list(lvb_jags_out2_multi_t0_free_lnorm, lvb_jags_out2_multi_t0_0_lnorm), p="k")
+comparecat(list(lvb_jags_out2_multi_t0_free_lnorm, lvb_jags_out2_multi_t0_0_lnorm), p="t0")
+comparecat(list(lvb_jags_out2_multi_t0_free_lnorm, lvb_jags_out2_multi_t0_0_lnorm), p="L_inf")
 
 
 for(j in 1:4) {
   par(mfcol = c(3,3))  
-  plot_postpred(ypp = lvb_jags_out2_multi_t0_free$sims.list$ypp[,,j], 
+  plot_postpred(ypp = lvb_jags_out2_multi_t0_free_lnorm$sims.list$ypp[,,j], 
                 y=lvbdata$Length, x=lvbdata$Age, col = j+1)
 }
 for(j in 1:4) {
   par(mfcol = c(3,3))  
-  plot_postpred(ypp = lvb_jags_out2_multi_t0_0$sims.list$ypp[,,j], 
+  plot_postpred(ypp = lvb_jags_out2_multi_t0_0_lnorm$sims.list$ypp[,,j], 
                 y=lvbdata$Length, x=lvbdata$Age, col = j+1)
 }
 
 
 
+doDIC <- TRUE
 
-
+if(doDIC) {
 
 ##### comparing DICs across all candidate models
 ## trying multi-model
 cat('model {
   for(i in 1:n) {
-    L[i] ~ dnorm(mu[i], tau)
-    ypp[i] ~ dnorm(mu[i], tau)
-    mu[i] <- whichmodel[1]*L_inf*(1-exp(-k*(a[i]-t0))) +      # VBM - VB
+    L[i] ~ dlnorm(logmu[i], tau)
+    ypp[i] ~ dlnorm(logmu[i], tau)
+    logmu[i] <- log(whichmodel[1]*L_inf*(1-exp(-k*(a[i]-t0))) +      # VBM - VB
                whichmodel[2]*L_inf*(1-exp(-k*(a[i]-t0)))^P +    # GGM - generalized VB
                whichmodel[3]*L_inf/(1+exp(-k*(a[i]-t0))) +      # LGM - logistic growth model
-               whichmodel[4]*L_inf*exp((-1/k)*exp(-k*(a[i]-t0))) # PGM - Gompertz
+               whichmodel[4]*L_inf*exp((-1/k)*exp(-k*(a[i]-t0)))) # PGM - Gompertz
   }
 
   tau <- pow(sig, -2)
-  sig ~ dunif(0, 1000)
+  sig ~ dunif(0, 10)#00)
   L_inf ~ dnorm(400, .0001)
   k ~ dnorm(0,.1)T(0,)
   t0 ~ dnorm(0,.01)T(,6)#<-0#
@@ -311,16 +280,16 @@ cat('model {
 
 cat('model {
   for(i in 1:n) {
-    L[i] ~ dnorm(mu[i], tau)
-    ypp[i] ~ dnorm(mu[i], tau)
-    mu[i] <- whichmodel[1]*L_inf*(1-exp(-k*(a[i]-t0))) +      # VBM - VB
+    L[i] ~ dlnorm(logmu[i], tau)
+    ypp[i] ~ dlnorm(logmu[i], tau)
+    logmu[i] <- log(whichmodel[1]*L_inf*(1-exp(-k*(a[i]-t0))) +      # VBM - VB
                whichmodel[2]*L_inf*(1-exp(-k*(a[i]-t0)))^P +    # GGM - generalized VB
                whichmodel[3]*L_inf/(1+exp(-k*(a[i]-t0))) +      # LGM - logistic growth model
-               whichmodel[4]*L_inf*exp((-1/k)*exp(-k*(a[i]-t0))) # PGM - Gompertz
+               whichmodel[4]*L_inf*exp((-1/k)*exp(-k*(a[i]-t0)))) # PGM - Gompertz
   }
 
   tau <- pow(sig, -2)
-  sig ~ dunif(0, 1000)
+  sig ~ dunif(0, 10)#00)
   L_inf ~ dnorm(400, .0001)
   k ~ dnorm(0,.1)T(0,)
   t0 <-0 #~ dnorm(0,.01)T(,6)#
@@ -332,7 +301,7 @@ lvb_data2_multi_4DIC <- lvb_data2_multi
 lvb_data2_multi_4DIC$L <- lvb_data2_multi_4DIC$L[,1]
 modellist <- list()
 for(j in 1:4) {
-  niter <- 300*1000 # 1.2/1.7 min per at 100k
+  niter <- 500*1000             ##############    about 2 hours total at 1000k
   ncores <- min(parallel::detectCores()-1, 10)
   
   lvb_data2_multi_4DIC$whichmodel <- rep(0,4)
@@ -364,6 +333,23 @@ plot(DICs-min(DICs))
 # 3 wins 1:4 (weird)
 # 6 wins 5:8 (no surprise)
 
+DICs-min(DICs)
+# # at 1000k, normal error
+# [1]  16.49792  12.40554   0.00000  49.52038
+# [5] 103.98221  23.69256  91.20001 127.61615
+
+# # at 500k, lognormal error
+# [1]  15.37467  11.11130   0.00000  45.94959  
+# [5]  98.14189  20.52562  86.01841 121.41780
+}
+
+
+
+
+do_kfold <- FALSE
+
+if(do_kfold) {
+
 
 ## honestly the best way to do this will be loocv or kfcv (285 data points so probably kfcv)
 # fold <- sample(1:5, length=nrow(lvbdata))
@@ -376,10 +362,12 @@ plot(DICs-min(DICs))
 # }
 
 k <- 5
-niter <- 100*1000
+niter <- 100*1000   # 42 minutes at 100k
 fold <- sample(1:k, nrow(lvbdata), replace=TRUE)
 rmses <- rep(NA, 8)
 rmse <- function(x1, x2) sqrt(mean((x1-x2)^2, na.rm=TRUE))
+tstart <- Sys.time()
+print(tstart)
 for(i_model in 1:4) {
   preds <- rep(NA, nrow(lvbdata))
   for(i_fold in 1:k) {
@@ -414,10 +402,32 @@ for(i_model in 1:4) {
   rmses[i_model+4] <- rmse(preds, lvbdata$Length)
   print(i_model+4)
 }
+print(Sys.time() - tstart)
+
 plot(rmses)
 # again, 3 wins 1:4 (weird!!)
 # again, 6 wins 5:8 (no surprise)
 
+rmses
+# # lognormal error at 100k
+# [1] 17.43940 17.37480 17.09438 18.29192 
+# [5] 20.55086 17.72111 20.05275 21.42115
+
+rmses - min(rmses)
+# # normal error at 100k
+# [1] 0.4101423 0.3192708 0.0000000 1.2566708
+# [5] 3.5312422 0.6970438 3.0755605 4.4452475
+
+# # lognormal error at 100k
+# [1] 0.3450151 0.2804173 0.0000000 1.1975323 
+# [5] 3.4564799 0.6267299 2.9583637 4.3267686
+
+rmses/min(rmses)
+# # lognormal error at 100k
+# [1] 1.020183 1.016404 1.000000 1.070054
+# [5] 1.202200 1.036663 1.173061 1.253111
+
+}
 
 
 ####### looking at the length & age distrib of the spawning sample by date

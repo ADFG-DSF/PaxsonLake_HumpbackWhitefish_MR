@@ -1,0 +1,33 @@
+model {
+  for(i in 1:n) {
+    for(j in 1:4) {
+      L[i,j] ~ dlnorm(logmu[i,j], tau[j])
+      ypp[i,j] ~ dlnorm(logmu[i,j], tau[j])
+    }
+    logmu[i,1] <- log(L_inf[1]*(1-exp(-k[1]*(a[i]-t0[1]))))      # VBM - VB
+    logmu[i,2] <- log(L_inf[2]*(1-exp(-k[2]*(a[i]-t0[2])))^P[2])    # GGM - generalized VB
+    logmu[i,3] <- log(L_inf[3]/(1+exp(-k[3]*(a[i]-t0[3]))))      # LGM - logistic growth model
+    logmu[i,4] <- log(L_inf[4]*exp((-1/k[4])*exp(-k[4]*(a[i]-t0[4])))) # PGM - Gompertz
+  }
+
+  for(j in 1:4) {
+    tau[j] <- pow(sig[j], -2)
+    sig[j] ~ dunif(0, 10)#00)
+    L_inf[j] ~ dnorm(400, .0001)
+    k[j] ~ dnorm(0,.1)T(0,)
+    t0[j] <-0 #~ dnorm(0,.01)T(,6)#
+    P[j] ~ dlnorm(0,1)
+  }
+  
+  for(ifit in 1:nfit) {
+    logmufit[ifit,1] <- log(L_inf[1]*(1-exp(-k[1]*(agefit[ifit]-t0[1]))))      # VBM - VB
+    logmufit[ifit,2] <- log(L_inf[2]*(1-exp(-k[2]*(agefit[ifit]-t0[2])))^P[2])    # GGM - generalized VB
+    logmufit[ifit,3] <- log(L_inf[3]/(1+exp(-k[3]*(agefit[ifit]-t0[3]))))      # LGM - logistic growth model
+    logmufit[ifit,4] <- log(L_inf[4]*exp((-1/k[4])*exp(-k[4]*(agefit[ifit]-t0[4])))) # PGM - Gompertz
+    for(j in 1:4) {
+      ppfit[ifit,j] ~ dlnorm(logmufit[ifit,j], tau[j])
+      mufit[ifit,j] <- exp(logmufit[ifit,j])
+    }
+  }
+
+}
