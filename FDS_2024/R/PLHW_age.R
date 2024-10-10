@@ -253,7 +253,7 @@ for(j in 1:4) {
 
 
 
-doDIC <- TRUE
+doDIC <- FALSE
 
 if(doDIC) {
 
@@ -301,7 +301,7 @@ lvb_data2_multi_4DIC <- lvb_data2_multi
 lvb_data2_multi_4DIC$L <- lvb_data2_multi_4DIC$L[,1]
 modellist <- list()
 for(j in 1:4) {
-  niter <- 500*1000             ##############    about 2 hours total at 1000k
+  niter <- 1000*1000             ##############    about 2 hours total at 1000k
   ncores <- min(parallel::detectCores()-1, 10)
   
   lvb_data2_multi_4DIC$whichmodel <- rep(0,4)
@@ -338,15 +338,15 @@ DICs-min(DICs)
 # [1]  16.49792  12.40554   0.00000  49.52038
 # [5] 103.98221  23.69256  91.20001 127.61615
 
-# # at 500k, lognormal error
-# [1]  15.37467  11.11130   0.00000  45.94959  
-# [5]  98.14189  20.52562  86.01841 121.41780
+# # at 1000k, lognormal error
+# [1]  16.72430  10.79417   0.00000  45.04177  
+# [5]  98.03871  20.49830  85.91393 121.29690
 }
 
 
 
 
-do_kfold <- FALSE
+do_kfold <- TRUE
 
 if(do_kfold) {
 
@@ -362,7 +362,7 @@ if(do_kfold) {
 # }
 
 k <- 5
-niter <- 100*1000   # 42 minutes at 100k
+niter <- 250*1000   # 42 minutes at 100k, 1.7 hours at 250k
 fold <- sample(1:k, nrow(lvbdata), replace=TRUE)
 rmses <- rep(NA, 8)
 rmse <- function(x1, x2) sqrt(mean((x1-x2)^2, na.rm=TRUE))
@@ -409,23 +409,23 @@ plot(rmses)
 # again, 6 wins 5:8 (no surprise)
 
 rmses
-# # lognormal error at 100k
-# [1] 17.43940 17.37480 17.09438 18.29192 
-# [5] 20.55086 17.72111 20.05275 21.42115
+# # lognormal error at 250k
+# [1] 17.82475 17.66177 17.34923 18.51919 
+# [5] 20.61240 17.93371 20.19443 21.43202
 
 rmses - min(rmses)
 # # normal error at 100k
 # [1] 0.4101423 0.3192708 0.0000000 1.2566708
 # [5] 3.5312422 0.6970438 3.0755605 4.4452475
 
-# # lognormal error at 100k
-# [1] 0.3450151 0.2804173 0.0000000 1.1975323 
-# [5] 3.4564799 0.6267299 2.9583637 4.3267686
+# # lognormal error at 250k
+# [1] 0.4755244 0.3125416 0.0000000 1.1699629 
+# [5] 3.2631753 0.5844788 2.8452035 4.0827890
 
 rmses/min(rmses)
-# # lognormal error at 100k
-# [1] 1.020183 1.016404 1.000000 1.070054
-# [5] 1.202200 1.036663 1.173061 1.253111
+# # lognormal error at 250k
+# [1] 1.027409 1.018015 1.000000 1.067436
+# [5] 1.188088 1.033689 1.163996 1.235330
 
 }
 
