@@ -253,7 +253,7 @@ for(j in 1:4) {
 
 
 
-doDIC <- FALSE
+doDIC <- TRUE
 
 if(doDIC) {
 
@@ -301,7 +301,7 @@ lvb_data2_multi_4DIC <- lvb_data2_multi
 lvb_data2_multi_4DIC$L <- lvb_data2_multi_4DIC$L[,1]
 modellist <- list()
 for(j in 1:4) {
-  niter <- 1000*1000             ##############    about 2 hours total at 1000k
+  niter <- 5000*1000             ##############    about 2 hours total at 1000k
   ncores <- min(parallel::detectCores()-1, 10)
   
   lvb_data2_multi_4DIC$whichmodel <- rep(0,4)
@@ -362,7 +362,7 @@ if(do_kfold) {
 # }
 
 k <- 5
-niter <- 250*1000   # 42 minutes at 100k, 1.7 hours at 250k
+niter <- 1000*1000   # 42 minutes at 100k, 1.7 hours at 250k
 fold <- sample(1:k, nrow(lvbdata), replace=TRUE)
 rmses <- rep(NA, 8)
 rmse <- function(x1, x2) sqrt(mean((x1-x2)^2, na.rm=TRUE))
