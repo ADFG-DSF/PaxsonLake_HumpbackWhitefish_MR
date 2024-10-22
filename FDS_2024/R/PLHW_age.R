@@ -253,7 +253,7 @@ for(j in 1:4) {
 
 
 
-doDIC <- TRUE
+doDIC <- FALSE
 
 if(doDIC) {
 
@@ -364,7 +364,7 @@ if(do_kfold) {
 k <- 5
 niter <- 1000*1000   # 42 minutes at 100k, 1.7 hours at 250k
 fold <- sample(1:k, nrow(lvbdata), replace=TRUE)
-rmses <- rep(NA, 8)
+rmses <- maes <- rep(NA, 8)
 rmse <- function(x1, x2) sqrt(mean((x1-x2)^2, na.rm=TRUE))
 tstart <- Sys.time()
 print(tstart)
@@ -383,6 +383,7 @@ for(i_model in 1:4) {
     preds[fold==i_fold] <- themodel$q50$L[fold==i_fold]
   }
   rmses[i_model] <- rmse(preds, lvbdata$Length)
+  maes[i_model] <- jagshelper:::mae(preds, lvbdata$Length)
   print(i_model)
 }
 for(i_model in 1:4) {
@@ -400,6 +401,7 @@ for(i_model in 1:4) {
     preds[fold==i_fold] <- themodel$q50$L[fold==i_fold]
   }
   rmses[i_model+4] <- rmse(preds, lvbdata$Length)
+  maes[i_model+4] <- jagshelper:::mae(preds, lvbdata$Length)
   print(i_model+4)
 }
 print(Sys.time() - tstart)
@@ -427,7 +429,111 @@ rmses/min(rmses)
 # [1] 1.024058 1.018488 1.000000 1.072017
 # [5] 1.198819 1.041206 1.172922 1.251319
 
+maes
+# # lognormal error at 1000k
+# [1] 12.76432 12.60870 12.30474 13.36021
+# [5] 14.63153 12.95392 14.56734 14.83313
 }
+
+
+## making some visuals for model comparison
+rmses <- c(17.66761, 17.57152, 17.25255, 18.49503, 20.68268, 17.96346, 20.23590, 21.58844)
+maes <- c(12.76432, 12.60870, 12.30474, 13.36021, 14.63153, 12.95392, 14.56734, 14.83313)
+
+par(mfrow=c(1,2))
+par(mar=c(7,4,4,2))
+barplot(rmses, 
+        names.arg=rep(modelnames,2), las=2, 
+        col=c(rep(6,4),rep(4,4)),
+        ylab="Root Mean Square Prediction Error (mm)")
+abline(h=min(rmses), lty=2)
+
+# similar plot of mae
+barplot(maes, 
+        names.arg=rep(modelnames,2), las=2, 
+        col=c(rep(6,4),rep(4,4)),
+        ylab="Mean Absolute Prediction Error (mm)")
+abline(h=min(maes), lty=2)
+
+
+# caterpillar(cbind(lvb_jags_out2_multi_t0_free_lnorm$sims.list$sig,
+#                   lvb_jags_out2_multi_t0_0_lnorm$sims.list$sig),
+#             # ylim=c(0,0.065), 
+#             col=c(rep(3,4),rep(4,4)),
+#             xax=rep(modelnames,2), las=2, ylab="sigma")
+
+caterpillar(cbind(lvb_jags_out2_multi_t0_free_lnorm$sims.list$t0,
+                  lvb_jags_out2_multi_t0_0_lnorm$sims.list$t0),
+            # ylim=c(0,0.065), 
+            col=c(rep(6,4),rep(4,4)),
+            xax=rep(modelnames,2), las=2, ylab="t0 (years)")
+
+caterpillar(cbind(lvb_jags_out2_multi_t0_free_lnorm$sims.list$L_inf,
+                  lvb_jags_out2_multi_t0_0_lnorm$sims.list$L_inf),
+            # ylim=c(0,0.065), 
+            col=c(rep(6,4),rep(4,4)),
+            xax=rep(modelnames,2), las=2, ylab="L_inf (mm)")
+
+# length - age with all 8 models, overlayed with Linf envelope
+par(mfrow=c(2,2))
+par(mar=c(5,4,4,2))
+for(j in 1:4) {   # t0 free
+  plot(lvbdata$Age, lvbdata$Length, main=paste(modelnames[j], "- t0 free"), 
+       ylab="Fork Length (mm)", xlab="Age (years)",
+       ylim=range(lvbdata$Length,625))
+  envelope(lvb_jags_out2_multi_t0_free_lnorm$sims.list$mufit[,,j], x=lvb_data2_multi$agefit, add=T, col=6)
+  envelope(replicate(2,lvb_jags_out2_multi_t0_free_lnorm$sims.list$L_inf[,j]), col=6, x=c(0,40), add=T)
+}
+for(j in 1:4) {   # t0 set to zero
+  plot(lvbdata$Age, lvbdata$Length, main=paste(modelnames[j], "- t0 set to zero"), 
+       ylab="Fork Length (mm)", xlab="Age (years)",
+       ylim=range(lvbdata$Length,625))
+  envelope(lvb_jags_out2_multi_t0_0_lnorm$sims.list$mufit[,,j], x=lvb_data2_multi$agefit, add=T, col=4)
+  envelope(replicate(2,lvb_jags_out2_multi_t0_0_lnorm$sims.list$L_inf[,j]), col=4, x=c(0,40), add=T)
+}
+
+
+
+#### one more try with k-fold cross validation, using the new kfold function
+niter <- 1000*100#0  # 20k in 15 min
+{
+tstart <- Sys.time()
+ncores <- min(parallel::detectCores()-1, 10)
+kfold_t0_free <- kfold(model.file="lvb_jags2_multi_t0_free_lnorm", data=lvb_data2_multi,
+                       k=10, save_postpred = TRUE, fold_dims = 1, p="L",
+                       n.chains=ncores, parallel=T, n.iter=niter,
+                       n.burnin=niter/2, n.thin=niter/2000)
+rmse_vec <- mae_vec <- NA
+rmse_mat <- mae_mat <- matrix(NA, nrow=dim(kfold_t0_free$postpred_y)[1], ncol=8)
+for(i in 1:4) {
+  rmse_vec[i] <- jagshelper:::rmse(lvb_data2_multi$L[,i], kfold_t0_free$pred_y[,i])
+  mae_vec[i] <- jagshelper:::mae(lvb_data2_multi$L[,i], kfold_t0_free$pred_y[,i])
+  for(i_mcmc in 1:dim(kfold_t0_free$postpred_y)[1]) {
+    rmse_mat[i_mcmc,i] <- jagshelper:::rmse(kfold_t0_free$postpred_y[i_mcmc,,i], 
+                                            kfold_t0_free$data_y[,i])
+    mae_mat[i_mcmc,i] <- jagshelper:::mae(kfold_t0_free$postpred_y[i_mcmc,,i], 
+                                            kfold_t0_free$data_y[,i])
+  }
+}
+
+kfold_t0_0 <- kfold(model.file="lvb_jags2_multi_t0_0_lnorm", data=lvb_data2_multi,
+                    k=10, save_postpred = TRUE, fold_dims = 1, p="L",
+                    n.chains=ncores, parallel=T, n.iter=niter,
+                    n.burnin=niter/2, n.thin=niter/2000)
+for(i in 1:4) {
+  rmse_vec[i+4] <- jagshelper:::rmse(lvb_data2_multi$L[,i], kfold_t0_0$pred_y[,i])
+  mae_vec[i+4] <- jagshelper:::mae(lvb_data2_multi$L[,i], kfold_t0_0$pred_y[,i])
+  for(i_mcmc in 1:dim(kfold_t0_0$postpred_y)[1]) {
+    rmse_mat[i_mcmc,i+4] <- jagshelper:::rmse(kfold_t0_0$postpred_y[i_mcmc,,i], 
+                                              kfold_t0_0$data_y[,i])
+    mae_mat[i_mcmc,i+4] <- jagshelper:::mae(kfold_t0_0$postpred_y[i_mcmc,,i], 
+                                            kfold_t0_0$data_y[,i])
+  }
+}
+print(Sys.time() - tstart)
+}
+caterpillar(rmse_mat)
+caterpillar(mae_mat)
 
 
 ####### looking at the length & age distrib of the spawning sample by date
@@ -556,8 +662,8 @@ age_kspmat[3,3] <- with(subset(spawn_sample, Sex=="F"),
                            ks.test(Age[Date=="2023-12-19"], Age[Date=="2024-01-03"])$p.value)
 
 # still need to figure out how to apply sidak correction
-# sidak_alpha <- 1-((1-.05)^(1/3))
-sidak_alpha <- 1-((1-.1)^(1/3))
+alpha <- 0.05  # 0.05?  #0.1?
+sidak_alpha <- 1-((1-alpha)^(1/3))
 length_kspmat < sidak_alpha
 age_kspmat < sidak_alpha
 
