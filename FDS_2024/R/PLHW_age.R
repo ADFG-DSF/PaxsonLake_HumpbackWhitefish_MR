@@ -169,7 +169,7 @@ if(run_anyway | !("FDS_2024/posts/lvb_jags_out2_multi_t0_free_lnorm.Rdata" %in% 
 if(run_anyway | !("FDS_2024/posts/lvb_jags_out2_multi_t0_0_lnorm.Rdata" %in% allfiles)) {
   
   # JAGS controls - t0 set to zero
-  niter <- 500*1000 # 18 min at 500k
+  niter <- 1000*1000 # 18 min at 500k
   ncores <- min(parallel::detectCores()-1, 10)
   
   {
@@ -190,7 +190,6 @@ if(run_anyway | !("FDS_2024/posts/lvb_jags_out2_multi_t0_0_lnorm.Rdata" %in% all
 } else {
   load(file="FDS_2024/posts/lvb_jags_out2_multi_t0_0_lnorm.Rdata")
 }
-
 
 
 par(mfrow=c(2,2))
@@ -346,7 +345,7 @@ DICs-min(DICs)
 
 
 
-do_kfold <- TRUE
+do_kfold <- FALSE
 
 if(do_kfold) {
 
