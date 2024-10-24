@@ -682,4 +682,54 @@ age_kspmat < sidak_alpha
 # Females from 12/19/23	    Females from 12/28/23	    Females from 1/3/24	  0.72
 # All males from all dates	All females from all dates		                  X.XX
 
-# cohort thing??
+
+
+## cohort thing??
+asl_2021 <- read_csv("FDS_2024/flat_data/ASL_2021.csv") %>% 
+  as.data.frame %>%
+  mutate(cohort = 2021 - `Age B`)
+
+cohort21 <- asl_2021$cohort
+cohort23 <- 2023 - spawn_sample$Age
+
+thebreaks <- min(cohort21, cohort23, na.rm=TRUE):max(cohort21, cohort23, na.rm=TRUE)
+hist(cohort21, breaks=thebreaks)
+hist(cohort23, breaks=thebreaks)
+
+count21 <- table(factor(cohort21, levels=thebreaks))
+count23 <- table(factor(cohort23, levels=thebreaks))
+
+p21 <- count21/sum(count21)
+p23 <- count23/sum(count23)
+
+cilo21 <- qbeta(p=0.025, shape1=count21+0.5, shape2=sum(count21)-count21+0.5)
+cihi21 <- qbeta(p=0.975, shape1=count21+0.5, shape2=sum(count21)-count21+0.5)
+cilo23 <- qbeta(p=0.025, shape1=count23+0.5, shape2=sum(count23)-count23+0.5)
+cihi23 <- qbeta(p=0.975, shape1=count23+0.5, shape2=sum(count23)-count23+0.5)
+
+cols <- c(2,4)
+plot(x=thebreaks-.1, y=as.numeric(p21), ylim=c(0,max(cihi21, cihi23)), col=cols[1], pch=16)
+segments(x0=thebreaks-.1, y0=cilo21, y1=cihi21, col=cols[1])
+points(x=thebreaks+.1, y=as.numeric(p23), col=cols[2], pch=16)
+segments(x0=thebreaks+.1, y0=cilo23, y1=cihi23, col=cols[2])
+
+hist(cohort21, breaks=thebreaks, at=2*thebreaks)
+
+aa <- 4
+plot(NA, ylim=c(0, max(cihi21, cihi23)), xlim=c(1, aa*length(p21)), xaxt="n", 
+     xlab="Cohort", ylab="Proportion")
+axis(side=1, at=aa*seq_along(p21)-1, labels=thebreaks, las=2)
+rect(xleft=aa*seq_along(p21)-2,
+     xright=aa*seq_along(p21)-1,
+     ybottom=0*p21, ytop=p21,
+     col=adjustcolor(cols[1], alpha.f=.5),
+     border=cols[1])
+rect(xleft=aa*seq_along(p23)-1,
+     xright=aa*seq_along(p23)-0,
+     ybottom=0*p23, ytop=p23,
+     col=adjustcolor(cols[2], alpha.f=.5),
+     border=cols[2])
+segments(x0=aa*seq_along(p21)-1.5, y0=cilo21, y1=cihi21, col=cols[1])
+segments(x0=aa*seq_along(p21)-0.5, y0=cilo23, y1=cihi23, col=cols[2])
+legend("topleft", fill=adjustcolor(cols, alpha.f=.5), border=cols, lty=1, col=cols,
+       legend=c("2021 Sample (95% CI)", "2023 Sample (95% CI)"))
