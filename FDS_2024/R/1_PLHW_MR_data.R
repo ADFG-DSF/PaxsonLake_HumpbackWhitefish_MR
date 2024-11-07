@@ -1,6 +1,6 @@
 library(tidyverse)
 library(recapr)
-library(dsftools)
+library(dsftools)  # devtools::install_github("ADFG-DSF/dsftools")
 
 ### read data
 Event1 <- read_csv("FDS_2024/flat_data/Event1.csv", skip = 1) %>% 
