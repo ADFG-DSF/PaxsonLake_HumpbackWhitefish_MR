@@ -29,12 +29,9 @@ reorderlikeanumber <- function(x, ...) x[orderlikeanumber(x, ...=...)]
 
 recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
   dots <- list(...)
-  # if(length(dots) == 0) stop("Need to add input data")
+  if(length(dots) == 0) stop("Need to add input data")
   
-  # handle vectors??
-  # handle mix of data.frames and other things??
-  # handle matrix 
-  
+  # check to make sure all the data objects are data.frame or similar
   if(all(sapply(dots, inherits, c("data.frame", "matrix")))) {
     for(idots in 1:length(dots)) {
       if(!inherits(dots[[idots]], "data.frame")) {
@@ -48,24 +45,37 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
       if(!is.null(event)) {
         warning("Two data tables detected, argument event= will be ignored")
       }
-      out <- dots
-      the_events <- names(out)
+      if(!ID[1] %in% colnames(dots[[1]])) {
+        stop("Specified ID= column not detected in the first data table")
+      }
+      if(!ID[length(ID)] %in% colnames(dots[[2]])) {
+        stop("Specified ID= column not detected in the second data table")
+      }
+      out <- list()
+      out$input_data <- dots
+      the_events <- names(out$input_data)
     }
     if(length(dots) == 1) {
       if(!event %in% colnames(dots[[1]])) {
         stop("Specified event= column not detected in the data table")
+      }
+      if(length(ID) > 1) {
+        stop("Only one ID= column may be specified if a single data table is used")
+      }
+      if(!ID %in% colnames(dots[[1]])) {
+        stop("Specified ID= column not detected in the data table")
       }
       events_vec <- dots[[1]][[event]]
       the_events <- unique(events_vec)
       if(length(the_events) < 2) stop("Fewer than two events detected")
       if(length(the_events) > 2) stop("More than two events detected")
       
-      out <- list(subset(dots[[1]], events_vec==the_events[1]),
+      out <- list()
+      out$input_data <- list(subset(dots[[1]], events_vec==the_events[1]),
                   subset(dots[[1]], events_vec==the_events[2]))
-      names(out) <- the_events
+      names(out$input_data) <- the_events
     }
   } else {
-    ### ???
     stop("All data inputs must be data.frames or similar")
   }
   
@@ -73,8 +83,8 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
   if(!length(ID) %in% 1:2) stop("Argument ID= may only have one or two elements")
   
   # full vectors of tag ID for both events
-  recap_tags1 <- out[[1]][[ID[1]]]
-  recap_tags2 <- out[[2]][[ID[length(ID)]]]
+  recap_tags1 <- out$input_data[[1]][[ID[1]]]
+  recap_tags2 <- out$input_data[[2]][[ID[length(ID)]]]
   
   # tabulate to see if there are multiple records for individuals
   t1 <- table(recap_tags1, useNA="no")
@@ -82,12 +92,12 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
   problems1 <- t1[t1>1]
   problems2 <- t2[t2>1]
   if(length(problems1) > 0) {
-    warning(c("Multiple records exist for individuals in event ", names(out)[1], ": ",
+    warning(c("Multiple records exist for individuals in event ", the_events[1], ": ",
            paste0(reorderlikeanumber(names(problems1), stopiferror = FALSE), 
            c(rep(", ", length(problems1)-1), ""))))
   }
   if(length(problems2) > 0) {
-    warning(c("Multiple records exist for individuals in event ", names(out)[2], ": ",
+    warning(c("Multiple records exist for individuals in event ", the_events[2], ": ",
            paste0(reorderlikeanumber(names(problems2), stopiferror = FALSE), 
                   c(rep(", ", length(problems2)-1), ""))))
   }
@@ -97,8 +107,8 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
   recaps_vec <- c(recaps_vec[!is.na(recaps_vec)], recap_codes)
   
   # data tables of recaps for both events
-  recaps1 <- out[[1]][recap_tags1 %in% recaps_vec, ]
-  recaps2 <- out[[2]][recap_tags2 %in% recaps_vec, ]
+  recaps1 <- out$input_data[[1]][recap_tags1 %in% recaps_vec, ]
+  recaps2 <- out$input_data[[2]][recap_tags2 %in% recaps_vec, ]
   
   recaps1 <- recaps1[orderlikeanumber(recaps1[[ID[1]]], stopiferror = FALSE), ]
   recaps2 <- recaps2[orderlikeanumber(recaps2[[ID[length(ID)]]], stopiferror = FALSE), ]
@@ -225,21 +235,28 @@ interleave <- function(x1, x2, thenames=NULL) {
   #   
   # }
 }
-interleave(x1=recaps1_matched[,1:2], x2=recaps2_matched[,2:3])
-interleave(x1=as.data.frame(recaps1_matched)[,1:2], 
-           x2=as.data.frame(recaps2_matched)[3])
+# interleave(x1=recaps1_matched[,1:2], x2=recaps2_matched[,2:3])
+# interleave(x1=as.data.frame(recaps1_matched)[,1:2], 
+           # x2=as.data.frame(recaps2_matched)[3])
 
 
-# ! done ! make interleaving smarter - try to match the ordering for event 1 (!!!)
-# ! done ! - maybe make interleave() function
 # simplify recap warning - maybe IDs aren't needed
-# ! done ! coerce matrix input to data.frame
-# handle vector input???
 # need more test cases!!
 # - length(ID)==2
 # - duplicates in recaps
-# make sure the name $recaps isn't problematic!! maybe add a $input_data
-# add an error message when ... is empty! AND IF WE GIVE UP ON VECTOR INPUT
+# - TRY THINGS THAT SHOULD THROW AN ERROR
+# make out$recaps$all an rbindish thing (single appended data table) --- EACH ROW SHOULD BE A UNIQUE FISH
+# - make new sub-function append() to go with interleave() ???  -- NO
+
+# ! done ! make sure the name $recaps isn't problematic!! maybe add a $input_data
+# ! done ! add an error message when ... is empty! AND IF WE GIVE UP ON VECTOR INPUT
+# ! done ! make interleaving smarter - try to match the ordering for event 1 (!!!)
+# ! done ! - maybe make interleave() function
+# ! done ! coerce matrix input to data.frame
+# ! not going to ! handle vector input???
+
+# maybe rename as recapr_data, and write another function recapr_tabulate??
+# - would need columns for stratum - ANY OTHERS??
 
 
 aa <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2, recap_codes="TL")
@@ -254,5 +271,18 @@ aa <- recapr_prep(ID="Tag Number", data=(as.matrix(bothevents)), event="Event", 
 str(aa) 
 
 
+bothevents1 <- bothevents
+bothevents1$`Tag Number`[1] <- 770
+aa <- recapr_prep(ID="Tag Number", data=(as.matrix(bothevents1)), event="Event", recap_codes="TL")
+str(aa)
 
-aa <- recapr_prep(ID="Tag",event="event")
+
+Event11 <- Event1
+names(Event11)[7] <- "TagNumber"
+aa <- recapr_prep(ID=c("TagNumber","Tag Number"), event1=Event1, event2=Event2, recap_codes="TL")
+str(aa)
+
+bothevents1 <- bothevents
+bothevents1$Event <- 3
+aa <- recapr_prep(ID=c("Tag Number","Tag Number","steve"),event1=Event1, event2=Event2)   # needed data=bothevents
+str(aa)
