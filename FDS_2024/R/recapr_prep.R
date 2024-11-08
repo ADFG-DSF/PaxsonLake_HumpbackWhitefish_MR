@@ -29,12 +29,18 @@ reorderlikeanumber <- function(x, ...) x[orderlikeanumber(x, ...=...)]
 
 recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
   dots <- list(...)
+  # if(length(dots) == 0) stop("Need to add input data")
   
   # handle vectors??
   # handle mix of data.frames and other things??
   # handle matrix 
   
   if(all(sapply(dots, inherits, c("data.frame", "matrix")))) {
+    for(idots in 1:length(dots)) {
+      if(!inherits(dots[[idots]], "data.frame")) {
+        dots[[idots]] <- as.data.frame(dots[[idots]])
+      }
+    }
     if(length(dots) > 2) {
       stop("More than two data tables detected")
     }
@@ -43,6 +49,7 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
         warning("Two data tables detected, argument event= will be ignored")
       }
       out <- dots
+      the_events <- names(out)
     }
     if(length(dots) == 1) {
       if(!event %in% colnames(dots[[1]])) {
@@ -57,6 +64,9 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
                   subset(dots[[1]], events_vec==the_events[2]))
       names(out) <- the_events
     }
+  } else {
+    ### ???
+    stop("All data inputs must be data.frames or similar")
   }
   
   # this only works if ID is column names
@@ -183,9 +193,9 @@ interleave <- function(x1, x2, thenames=NULL) {
         if(colnum == 1) {
           outdf <- as.data.frame(x1[ix1])
         } else {
-          outdf[colnum] <- x1[,ix1]
+          outdf[colnum] <- x1[ix1]   ######
         }
-        outdf[colnum+1] <- x2[,which(names2==names1[ix1])]
+        outdf[colnum+1] <- x2[which(names2==names1[ix1])]   ######
         unused1[ix1] <- FALSE
         unused2[which(names2==names1[ix1])] <- FALSE
         
@@ -199,7 +209,7 @@ interleave <- function(x1, x2, thenames=NULL) {
     out <- cbind(outdf, unused)
   } else {
     unused <- cbind(x1, x2)
-    out <- unused[, order(names(unused))]
+    out <- unused[order(names(unused))]   ######
   }
   
   return(out)
@@ -216,16 +226,20 @@ interleave <- function(x1, x2, thenames=NULL) {
   # }
 }
 interleave(x1=recaps1_matched[,1:2], x2=recaps2_matched[,2:3])
+interleave(x1=as.data.frame(recaps1_matched)[,1:2], 
+           x2=as.data.frame(recaps2_matched)[3])
 
 
-# make interleaving smarter - try to match the ordering for event 1 (!!!)
-# - maybe make interleave() function
+# ! done ! make interleaving smarter - try to match the ordering for event 1 (!!!)
+# ! done ! - maybe make interleave() function
 # simplify recap warning - maybe IDs aren't needed
-# coerce matrix input to data.frame
+# ! done ! coerce matrix input to data.frame
 # handle vector input???
 # need more test cases!!
 # - length(ID)==2
 # - duplicates in recaps
+# make sure the name $recaps isn't problematic!! maybe add a $input_data
+# add an error message when ... is empty! AND IF WE GIVE UP ON VECTOR INPUT
 
 
 aa <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2, recap_codes="TL")
@@ -235,3 +249,10 @@ bothevents <- rbind(select(Event1, c("Event", "Tag Number", "Fork Length (mm)"))
                     select(Event2, c("Event", "Tag Number", "Fork Length (mm)"))) #%>% as.data.frame
 aa <- recapr_prep(ID="Tag Number", data=bothevents, event="Event", recap_codes="TL")
 str(aa)
+
+aa <- recapr_prep(ID="Tag Number", data=(as.matrix(bothevents)), event="Event", recap_codes="TL")
+str(aa) 
+
+
+
+aa <- recapr_prep(ID="Tag",event="event")
