@@ -259,30 +259,30 @@ interleave <- function(x1, x2, thenames=NULL) {
 # - would need columns for stratum - ANY OTHERS??
 
 
-aa <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2, recap_codes="TL")
-str(aa)
-
-bothevents <- rbind(select(Event1, c("Event", "Tag Number", "Fork Length (mm)")),
-                    select(Event2, c("Event", "Tag Number", "Fork Length (mm)"))) #%>% as.data.frame
-aa <- recapr_prep(ID="Tag Number", data=bothevents, event="Event", recap_codes="TL")
-str(aa)
-
-aa <- recapr_prep(ID="Tag Number", data=(as.matrix(bothevents)), event="Event", recap_codes="TL")
-str(aa) 
-
-
-bothevents1 <- bothevents
-bothevents1$`Tag Number`[1] <- 770
-aa <- recapr_prep(ID="Tag Number", data=(as.matrix(bothevents1)), event="Event", recap_codes="TL")
-str(aa)
-
-
-Event11 <- Event1
-names(Event11)[7] <- "TagNumber"
-aa <- recapr_prep(ID=c("TagNumber","Tag Number"), event1=Event1, event2=Event2, recap_codes="TL")
-str(aa)
-
-bothevents1 <- bothevents
-bothevents1$Event <- 3
-aa <- recapr_prep(ID=c("Tag Number","Tag Number","steve"),event1=Event1, event2=Event2)   # needed data=bothevents
-str(aa)
+# aa <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2, recap_codes="TL")
+# str(aa)
+# 
+# bothevents <- rbind(select(Event1, c("Event", "Tag Number", "Fork Length (mm)")),
+#                     select(Event2, c("Event", "Tag Number", "Fork Length (mm)"))) #%>% as.data.frame
+# aa <- recapr_prep(ID="Tag Number", data=bothevents, event="Event", recap_codes="TL")
+# str(aa)
+# 
+# aa <- recapr_prep(ID="Tag Number", data=(as.matrix(bothevents)), event="Event", recap_codes="TL")
+# str(aa) 
+# 
+# 
+# bothevents1 <- bothevents
+# bothevents1$`Tag Number`[1] <- 770
+# aa <- recapr_prep(ID="Tag Number", data=(as.matrix(bothevents1)), event="Event", recap_codes="TL")
+# str(aa)
+# 
+# 
+# Event11 <- Event1
+# names(Event11)[7] <- "TagNumber"
+# aa <- recapr_prep(ID=c("TagNumber","Tag Number"), event1=Event1, event2=Event2, recap_codes="TL")
+# str(aa)
+# 
+# bothevents1 <- bothevents
+# bothevents1$Event <- 3
+# aa <- recapr_prep(ID=c("Tag Number","Tag Number","steve"),event1=Event1, event2=Event2)   # needed data=bothevents
+# str(aa)
