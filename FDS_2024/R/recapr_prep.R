@@ -286,3 +286,43 @@ interleave <- function(x1, x2, thenames=NULL) {
 # bothevents1$Event <- 3
 # aa <- recapr_prep(ID=c("Tag Number","Tag Number","steve"),event1=Event1, event2=Event2)   # needed data=bothevents
 # str(aa)
+
+correct_growth <- function(x, 
+                           event_keep, event_adjust,
+                           column_keep, column_adjust,
+                           ID_keep, ID_adjust) {
+  # insert error checking
+  
+  # regression bit
+  yreg <- x$recaps$matched[[paste(column_keep, event_keep, sep="_")]]
+  xreg <- x$recaps$matched[[paste(column_adjust, event_adjust, sep="_")]]
+  lm1 <- lm(yreg ~ xreg)
+  
+  # predict from regression
+  ypred <- predict(lm1, newdata = data.frame(xreg=x$input_data[[event_adjust]][[column_adjust]]))
+  
+  # fill in individuals as available
+  ytag <- x$input_data[[event_adjust]][[ID_adjust]]
+  keeptag <- x$recaps$matched[[paste(ID_keep, event_keep, sep="_")]]
+  for(iy in seq_along(ytag)) {
+    if(!is.na(ytag[iy])) {
+      if(ytag[iy] %in% keeptag) {
+        ypred[iy] <- yreg[keeptag==ytag[iy]]
+      }
+    }
+  }
+  
+  ## actually should make new columns for these:
+  # need to change it in x$input_data[[event_adjust]][[column_adjust]]
+  x$input_data[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]] <- unname(ypred)
+  
+  # need to change it in x$recaps$unmatched[[event_adjust]][[column_adjust]]
+  # need to change it in x$recaps$all[[event_adjust]][[column_adjust]]
+}
+correct_growth(x=aa, 
+               event_keep="event1", 
+               event_adjust="event2", 
+               column_keep="Fork Length (mm)", 
+               column_adjust="Fork Length (mm)",
+               ID_keep="Tag Number",
+               ID_adjust="Tag Number")
