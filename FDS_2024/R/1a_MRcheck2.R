@@ -18,15 +18,33 @@ Event2 <- read_csv("FDS_2024/flat_data/Event2.csv", skip = 1) %>%
   mutate(`Tag Number` = as.character(`Tag Number`)) %>%
   filter(`Fork Length (mm)` >= 345)
 
+
+### read data - UNCENSORED
+Event1u <- read_csv("FDS_2024/flat_data/Event1.csv", skip = 1) %>% 
+  janitor::remove_empty(which = "cols") %>% 
+  janitor::remove_empty(which = "rows") %>%
+  mutate(`Tag Number` = as.character(`Tag Number`)) #%>%
+  # filter(`Fork Length (mm)` >= 345)
+
+Event2u <- read_csv("FDS_2024/flat_data/Event2.csv", skip = 1) %>% 
+  janitor::remove_empty(which = "cols") %>% 
+  janitor::remove_empty(which = "rows") %>%
+  mutate(`Tag Number` = as.character(`Tag Number`)) #%>%
+  # filter(`Fork Length (mm)` >= 345)
+
+
+
+
+
 # Event2_recaps <- subset(Event2, !is.na(`Tag Number`)) %>%
 #   arrange(`Tag Number`)
 # Event1_recaps <- subset(Event1, `Tag Number` %in% Event2_recaps$`Tag Number`) %>%
 #   arrange(`Tag Number`)
 
 
-allMR <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2, recap_codes="TL")
+allMRu <- recapr_prep(ID="Tag Number", event1=Event1u, event2=Event2u, recap_codes="TL")
 
-paired_recaps <- allMR$recaps$matched
+paired_recaps <- allMRu$recaps$matched
 
 # reproduce growth correction
 # yreg <- paired_recaps$`Fork Length (mm)_event1`
@@ -91,3 +109,9 @@ ks.test(allMR2$input_data$event2$`Fork Length (mm)`[allMR2$input_data$event2$len
         allMR2$recaps$all$event2$`Fork Length (mm)`[allMR2$recaps$all$event2$length_stratum==2])
 ks.test(allMR2$input_data$event2$fl_corr_mt[allMR2$input_data$event2$length_stratum==2],
         allMR2$recaps$all$event2$fl_corr_mt[allMR2$recaps$all$event2$length_stratum==2])
+
+
+
+NChapman(n1=table(Event1$length_stratum),
+         n2=table(Event2$length_stratum),
+         m2=table(allMR2$recaps$all$event2$length_stratum))   # wrong!! 345
