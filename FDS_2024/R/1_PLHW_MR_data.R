@@ -25,11 +25,26 @@ Event1_recaps <- subset(Event1, `Tag Number` %in% Event2_recaps$`Tag Number`) %>
 xreg <- Event2_recaps$`Fork Length (mm)`[Event2_recaps$`Tag Number` != "TL"]
 yreg <- Event1_recaps$`Fork Length (mm)`
 lm_growth <- lm(yreg ~ xreg)
+summary(lm_growth)
 lm_predict <- predict(lm_growth, newdata = data.frame(xreg=Event2$`Fork Length (mm)`))
+
+####### addition 11/22
+# impute first event lengths for recaps
+for(i in 1:nrow(Event2)) {
+  if(!is.na(Event2$`Tag Number`[i])) {
+    if(Event2$`Tag Number`[i] %in% Event1_recaps$`Tag Number`) {
+      lm_predict[i] <- Event1_recaps$`Fork Length (mm)`[Event1_recaps$`Tag Number` == Event2$`Tag Number`[i]]
+    }
+  }
+}
+
 plot(Event2$`Fork Length Corrected (mm)`, lm_predict)
 abline(0,1)
 # I think it makes more sense to predict event 1 size from event 2, but this is 
-# essentially fine
+# essentially fine ---> THIS WAS CHANGED
+
+####### addition 11/22
+Event2$`Fork Length Corrected (mm)` <- lm_predict
 
 # censor < 345mm
 table(is.na(Event1$`Fork Length (mm)`))
@@ -77,7 +92,8 @@ ksplot <- function(x1, x2, legend=c("x1","x2"), main="", col=c(1,1), lty=c(1,1),
 }
 par(mfrow=c(2,2))
 ksplot(Event1$`Fork Length (mm)`, 
-        Event1_recaps$`Fork Length (mm)`,
+       # Event1_recaps$`Fork Length (mm)`,
+       Event2_recaps$`Fork Length Corrected (mm)`,
        xlab="mm FL", main="Event 1",
        col=c(1,2), legend=c("All","Recaps"))
 ksplot(Event2$`Fork Length Corrected (mm)`, 
@@ -86,7 +102,8 @@ ksplot(Event2$`Fork Length Corrected (mm)`,
        col=c(1,4), legend=c("All","Recaps"))
 
 ksplot(Event1$`Fork Length (mm)` %s_l% 400, 
-        Event1_recaps$`Fork Length (mm)` %s_l% 400,
+       # Event1_recaps$`Fork Length (mm)` %s_l% 400,
+       Event2_recaps$`Fork Length Corrected (mm)` %s_l% 400,
        xlab="mm FL", main="Event 1 - Small (<400mm)",
        col=c(1,2), legend=c("All","Recaps"))
 ksplot(Event2$`Fork Length Corrected (mm)` %s_l% 400, 
@@ -95,7 +112,8 @@ ksplot(Event2$`Fork Length Corrected (mm)` %s_l% 400,
        col=c(1,4), legend=c("All","Recaps"))
 
 ksplot(Event1$`Fork Length (mm)` %s_geq% 400, 
-        Event1_recaps$`Fork Length (mm)` %s_geq% 400,
+       # Event1_recaps$`Fork Length (mm)` %s_geq% 400,
+       Event2_recaps$`Fork Length Corrected (mm)` %s_geq% 400,
        xlab="mm FL", main="Event 1 - Large (>=400mm)",
        col=c(1,2), legend=c("All","Recaps"))
 ksplot(Event2$`Fork Length Corrected (mm)` %s_geq% 400, 
@@ -121,6 +139,8 @@ consistencytest(n1 = table(Event1$Area[Event1$`Fork Length (mm)` >= 400]),
                 m2strata1 = as.numeric(as.factor(Event1_recaps$Area[Event1_recaps$`Fork Length (mm)` >= 400]))+1,
                 m2strata2 = rep(4, sum(Event1_recaps$`Fork Length (mm)` >= 400)))
 ## seems to match (at least for the "small" stratum)
+####### though does not match tallies as of 11/22
+
 
 
 ### reproduce abundance estimation
@@ -140,9 +160,7 @@ sestrat(n1 = table(Event1$`Fork Length (mm)` >= 400),
        m2 = table(Event2_recaps$`Fork Length Corrected (mm)` >= 400),
        estimator="Chapman")
 
-## I get slightly different abundance estimates: this is because in tab Chi Square and Abundance,
-## the cells counting n1, n2 corrected, and m2 corrected have a "<" in the formula and the upper bound
-## is set to 399, so fish measuring exactly 399mm are omitted.
+## tallies do not match 11/22 (missing 399-400cm corrected lengths)
 
 
 
