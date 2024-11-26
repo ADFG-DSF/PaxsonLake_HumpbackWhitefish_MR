@@ -45,8 +45,8 @@ cat('model {
 
   tau <- pow(sig, -2)
   sig ~ dunif(0, 10)#00)
-  L_inf ~ dnorm(400, .0001)
-  # L_inf ~ dnorm(381.5, 1/(20.5^2))
+  # L_inf ~ dnorm(400, .0001)         # weak prior
+  L_inf ~ dnorm(381.5, 1/(20.5^2))    # INFORMED PRIOR from prev study
   k ~ dnorm(0,.1)T(0,)
   t0 ~ dnorm(0,.01)T(,6)#<-0#
   P ~ dlnorm(0,1)
@@ -77,7 +77,7 @@ lvb_data2_multi_4DIC$whichmodel[1] <- 1
 
 
 ## run the null model with all the data
-niter <- 80*1000#100*1000             ##############    2 minutes at 100k, 47 seconds at 40k
+niter <- 100*1000             ##############    2 minutes at 100k, 47 seconds at 40k
 ncores <- min(parallel::detectCores()-1, 10)
 
 {
