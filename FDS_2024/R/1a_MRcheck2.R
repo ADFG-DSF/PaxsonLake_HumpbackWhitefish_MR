@@ -110,8 +110,45 @@ ks.test(allMR2$input_data$event2$`Fork Length (mm)`[allMR2$input_data$event2$len
 ks.test(allMR2$input_data$event2$fl_corr_mt[allMR2$input_data$event2$length_stratum==2],
         allMR2$recaps$all$event2$fl_corr_mt[allMR2$recaps$all$event2$length_stratum==2])
 
+# marks vs caps
+ks.test(allMR2$input_data$event1$`Fork Length (mm)`[allMR2$input_data$event1$length_stratum==2],
+        allMR2$input_data$event2$`Fork Length (mm)`[allMR2$input_data$event2$length_stratum==2])
+ks.test(allMR2$input_data$event1$`Fork Length (mm)`[allMR2$input_data$event1$length_stratum==2],
+        allMR2$input_data$event2$fl_corr_mt[allMR2$input_data$event2$length_stratum==2])
 
 
-NChapman(n1=table(Event1$length_stratum),
-         n2=table(Event2$length_stratum),
-         m2=table(allMR2$recaps$all$event2$length_stratum))   # wrong!! 345
+m1 <- allMR2$input_data$event1$`Fork Length (mm)`[allMR2$input_data$event1$length_stratum==2]
+c1 <- allMR2$input_data$event2$fl_corr_mt[allMR2$input_data$event2$length_stratum==2]
+
+m2 <- M$Mark
+c2 <- C$Capture
+
+plot(m1,m2)
+plot(m1-m2)
+mean(abs(m1-m2))
+
+plot(c1,c2)
+plot(c1-c2)
+plot(c1,c1-c2)
+
+ks.test(m1,c1)
+ks.test(m2,c2)
+
+plot(ecdf(c1))
+plot(ecdf(m1), add=T, col=2)
+plot(ecdf(c2))
+plot(ecdf(m2), add=T, col=2)
+
+
+nn <- 500
+nsize <- seq(40,100, by=2)
+pvals <- matrix(nrow=nn, ncol=length(nsize))
+for(j in 1:length(nsize)) {
+for(i in 1:nn) {
+pvals[i,j] <- ks.test(unname(allMR2$input_data$event2$fl_corr_mt[allMR2$input_data$event2$length_stratum==2]),
+                      unname(sample(allMR2$recaps$all$event2$fl_corr_mt[allMR2$recaps$all$event2$length_stratum==2],
+               nsize[j], replace=TRUE)), simulate.p.value = TRUE)$p.value
+}
+  print(j/length(nsize))
+}
+plot(nsize, colMeans(pvals<.05))
