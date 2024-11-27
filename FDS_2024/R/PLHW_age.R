@@ -213,6 +213,63 @@ if(run_anyway | !("FDS_2024/posts/lvb_jags_out2_multi_t0_0_lnorm.Rdata" %in% all
 }
 
 
+
+##### Writing the output & saving to external files
+
+write_output
+# pnames <- c("L_inf","k","P","t0","sig")
+if(write_output) {
+  for(j in 1:4) {   # t0 free
+    # make length age plots for all 4 models
+    png(filename = paste0("FDS_2024/R_output/Fig3_", modelnames[j], ".png"), 
+        res=300, width=8, height=8, units="in")
+    
+    par(family="serif")
+    plot(lvbdata$Age, lvbdata$Length, xlab = "Age", ylab="Length (mm FL)")
+    envelope(lvb_jags_out2_multi_t0_free_lnorm$sims.list$mufit[,,j], x=lvb_data2_multi$agefit, add=TRUE)
+    # abline(h=lvb_jags_out2_multi_t0_free_lnorm$q50$L_inf[j], lty=2)
+    # abline(h=lvb_jags_out2_multi_t0_free_lnorm$q2.5$L_inf[j], lty=3)
+    # abline(h=lvb_jags_out2_multi_t0_free_lnorm$q97.5$L_inf[j], lty=3)
+    
+    dev.off()
+    
+  
+    # make parameter tables for all 4 models
+    outdf <- data.frame(Parameter = c("L_inf","k","P","t0","sig"),
+               Estimate = c(lvb_jags_out2_multi_t0_free_lnorm$q50$L_inf[j],
+                            lvb_jags_out2_multi_t0_free_lnorm$q50$k[j],
+                            lvb_jags_out2_multi_t0_free_lnorm$q50$P[j],
+                            lvb_jags_out2_multi_t0_free_lnorm$q50$t0[j],
+                            lvb_jags_out2_multi_t0_free_lnorm$q50$sig[j]),
+               SE = c(lvb_jags_out2_multi_t0_free_lnorm$sd$L_inf[j],
+                            lvb_jags_out2_multi_t0_free_lnorm$sd$k[j],
+                            lvb_jags_out2_multi_t0_free_lnorm$sd$P[j],
+                            lvb_jags_out2_multi_t0_free_lnorm$sd$t0[j],
+                            lvb_jags_out2_multi_t0_free_lnorm$sd$sig[j]),
+               CI = c(
+                 paste0("(", round(lvb_jags_out2_multi_t0_free_lnorm$q2.5$L_inf[j], 2), ", ",
+                        round(lvb_jags_out2_multi_t0_free_lnorm$q97.5$L_inf[j], 2), ")"),
+                 paste0("(", round(lvb_jags_out2_multi_t0_free_lnorm$q2.5$k[j], 2), ", ",
+                        round(lvb_jags_out2_multi_t0_free_lnorm$q97.5$k[j], 2), ")"),
+                 paste0("(", round(lvb_jags_out2_multi_t0_free_lnorm$q2.5$P[j], 2), ", ",
+                        round(lvb_jags_out2_multi_t0_free_lnorm$q97.5$P[j], 2), ")"),
+                 paste0("(", round(lvb_jags_out2_multi_t0_free_lnorm$q2.5$t0[j], 2), ", ",
+                        round(lvb_jags_out2_multi_t0_free_lnorm$q97.5$t0[j], 2), ")"),
+                 paste0("(", round(lvb_jags_out2_multi_t0_free_lnorm$q2.5$sig[j], 2), ", ",
+                        round(lvb_jags_out2_multi_t0_free_lnorm$q97.5$sig[j], 2), ")")
+               ))
+    names(outdf)[4] <- "95% Credible Interval"
+    if(j != 2) {
+      outdf <- outdf[-3,]
+    }
+    write.csv(outdf, file = paste0("FDS_2024/R_output/Tab11_", modelnames[j], ".csv"))
+  }
+}
+
+
+
+
+
 par(mfrow=c(2,2))
 for(j in 1:4) {   # t0 free
   plot(lvbdata$Age, lvbdata$Length, main=paste(modelnames[j], "- t0 free"))
