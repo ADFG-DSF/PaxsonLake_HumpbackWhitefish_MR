@@ -162,7 +162,7 @@ allfiles <- list.files(recursive=TRUE)
 if(run_anyway | !("FDS_2024/posts/lvb_jags_out2_multi_t0_free_lnorm.Rdata" %in% allfiles)) {
   
   # JAGS controls - t0 free
-  niter <- 100*1000#1000*1000 # 49 min at 1000k
+  niter <- 1000*1000 # 49 min at 1000k
   ncores <- min(parallel::detectCores()-1, 10)
   
   {
