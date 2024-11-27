@@ -347,8 +347,8 @@ cat('model {
 
   tau <- pow(sig, -2)
   sig ~ dunif(0, 10)#00)
-  # L_inf[j] ~ dnorm(400, .0001)
-    L_inf[j] ~ dnorm(381.3, 1/(20.5^2))
+  # L_inf ~ dnorm(400, .0001)
+    L_inf ~ dnorm(381.3, 1/(20.5^2))
   k ~ dnorm(0,.1)T(0,)
   t0 ~ dnorm(0,.01)T(,6)#<-0#
   P ~ dlnorm(0,1)
@@ -367,8 +367,8 @@ cat('model {
 
   tau <- pow(sig, -2)
   sig ~ dunif(0, 10)#00)
- # L_inf[j] ~ dnorm(400, .0001)
-    L_inf[j] ~ dnorm(381.3, 1/(20.5^2))
+ # L_inf ~ dnorm(400, .0001)
+    L_inf ~ dnorm(381.3, 1/(20.5^2))
   k ~ dnorm(0,.1)T(0,)
   t0 <-0 #~ dnorm(0,.01)T(,6)#
   P ~ dlnorm(0,1)
