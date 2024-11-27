@@ -332,7 +332,6 @@ for(j in 1:4) {
 
 doDIC <- FALSE
 
-if(doDIC) {
 
 ##### comparing DICs across all candidate models
 ## trying multi-model
@@ -378,10 +377,15 @@ cat('model {
 
 lvb_data2_multi_4DIC <- lvb_data2_multi
 lvb_data2_multi_4DIC$L <- lvb_data2_multi_4DIC$L[,1]
+ncores <- min(parallel::detectCores()-1, 10)
+
+
+
+if(doDIC) {
+  
 modellist <- list()
 for(j in 1:4) {
   niter <- 5000*1000             ##############    about 2 hours total at 1000k
-  ncores <- min(parallel::detectCores()-1, 10)
   
   lvb_data2_multi_4DIC$whichmodel <- rep(0,4)
   lvb_data2_multi_4DIC$whichmodel[j] <- 1
