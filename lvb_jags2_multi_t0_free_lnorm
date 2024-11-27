@@ -13,7 +13,8 @@ model {
   for(j in 1:4) {
     tau[j] <- pow(sig[j], -2)
     sig[j] ~ dunif(0, 10)#00)
-    L_inf[j] ~ dnorm(400, .0001)
+    # L_inf[j] ~ dnorm(400, .0001)
+    L_inf[j] ~ dnorm(381.3, 1/(20.5^2))
     k[j] ~ dnorm(0,.1)T(0,)
     t0[j] ~ dnorm(0,.01)T(,6)#<-0#
     P[j] ~ dlnorm(0,1)

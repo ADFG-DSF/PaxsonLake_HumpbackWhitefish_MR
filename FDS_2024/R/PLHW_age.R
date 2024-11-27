@@ -77,7 +77,8 @@ cat('model {
   for(j in 1:4) {
     tau[j] <- pow(sig[j], -2)
     sig[j] ~ dunif(0, 10)#00)
-    L_inf[j] ~ dnorm(400, .0001)
+    # L_inf[j] ~ dnorm(400, .0001)
+    L_inf[j] ~ dnorm(381.3, 1/(20.5^2))
     k[j] ~ dnorm(0,.1)T(0,)
     t0[j] ~ dnorm(0,.01)T(,6)#<-0#
     P[j] ~ dlnorm(0,1)
@@ -111,7 +112,8 @@ cat('model {
   for(j in 1:4) {
     tau[j] <- pow(sig[j], -2)
     sig[j] ~ dunif(0, 10)#00)
-    L_inf[j] ~ dnorm(400, .0001)
+    # L_inf[j] ~ dnorm(400, .0001)
+    L_inf[j] ~ dnorm(381.3, 1/(20.5^2))
     k[j] ~ dnorm(0,.1)T(0,)
     t0[j] <-0 #~ dnorm(0,.01)T(,6)#
     P[j] ~ dlnorm(0,1)
@@ -152,6 +154,7 @@ lvb_data2_multi <- list(L=matrix(lvbdata$Length,ncol=4,nrow=nrow(lvbdata)),
 ## check if posts/ files exist, otherwise run
 
 run_anyway <- FALSE  # set this to TRUE to run the models anyway
+# run_anyway <- TRUE  # set this to TRUE to run the models anyway
 
 
 allfiles <- list.files(recursive=TRUE)
@@ -159,7 +162,7 @@ allfiles <- list.files(recursive=TRUE)
 if(run_anyway | !("FDS_2024/posts/lvb_jags_out2_multi_t0_free_lnorm.Rdata" %in% allfiles)) {
   
   # JAGS controls - t0 free
-  niter <- 1000*1000 # 49 min at 1000k
+  niter <- 100*1000#1000*1000 # 49 min at 1000k
   ncores <- min(parallel::detectCores()-1, 10)
   
   {
@@ -288,7 +291,8 @@ cat('model {
 
   tau <- pow(sig, -2)
   sig ~ dunif(0, 10)#00)
-  L_inf ~ dnorm(400, .0001)
+  # L_inf[j] ~ dnorm(400, .0001)
+    L_inf[j] ~ dnorm(381.3, 1/(20.5^2))
   k ~ dnorm(0,.1)T(0,)
   t0 ~ dnorm(0,.01)T(,6)#<-0#
   P ~ dlnorm(0,1)
@@ -307,7 +311,8 @@ cat('model {
 
   tau <- pow(sig, -2)
   sig ~ dunif(0, 10)#00)
-  L_inf ~ dnorm(400, .0001)
+ # L_inf[j] ~ dnorm(400, .0001)
+    L_inf[j] ~ dnorm(381.3, 1/(20.5^2))
   k ~ dnorm(0,.1)T(0,)
   t0 <-0 #~ dnorm(0,.01)T(,6)#
   P ~ dlnorm(0,1)
