@@ -4,6 +4,9 @@ library(jagsUI)
 library(jagshelper)
 
 
+write_output <- FALSE
+# write_output <- TRUE
+
 
 # reading data
 spawn_sample <- read_csv("FDS_2024/flat_data/spawn_sample.csv")%>% 
@@ -31,6 +34,21 @@ mnlength_tab <- with(spawn_sample,
                       ASL_table(age = agecut,
                                 length = Length))
 mnlength_tab
+write_output
+if(write_output) write.csv(mnlength_tab, file="FDS_2024/R_output/Tab10a.csv")
+
+# matching the format of the last report
+# Age	n	Mean	SD	SE
+mnlength_tab_2 <- data.frame(Age = paste0("'",agebreaks[-length(agebreaks)],# 
+                                       "-", agebreaks[-1]-1),
+                             n = mnlength_tab$n,
+                             Mean = mnlength_tab$mn_length,
+                             SD = unname(tapply(spawn_sample$Length, spawn_sample$agecut, sd, na.rm=TRUE)),
+                             SE = mnlength_tab$se_length)
+mnlength_tab_2
+write_output
+if(write_output) write.csv(mnlength_tab_2, file="FDS_2024/R_output/Tab10b.csv", quote=TRUE)
+
 with(spawn_sample,
      boxplot(Length ~ agecut, 
              at=(agebreaks[-1]+agebreaks[-length(agebreaks)])/2/5,
@@ -660,11 +678,34 @@ age_kspmat[3,2] <- with(subset(spawn_sample, Sex=="F"),
 age_kspmat[3,3] <- with(subset(spawn_sample, Sex=="F"), 
                            ks.test(Age[Date=="2023-12-19"], Age[Date=="2024-01-03"])$p.value)
 
+rownames(length_kspmat) <- rownames(age_kspmat) <- c("All fish", "Males", "Females")
+colnames(length_kspmat) <- colnames(age_kspmat) <- c("12/19/23 vs. 12/28/23", 
+                                                     "12/28/23 vs. 1/3/24", 
+                                                     "12/19/23 vs. 1/3/24")
+
 # still need to figure out how to apply sidak correction
-alpha <- 0.05  # 0.05?  #0.1?
+alpha <- .1#0.05  # 0.05?  #0.1?
 sidak_alpha <- 1-((1-alpha)^(1/3))
 length_kspmat < sidak_alpha
 age_kspmat < sidak_alpha
+
+write_output
+if(write_output) {
+  write.csv(
+rbind(c("Length", "", ""),
+array(paste0(round(length_kspmat, 2),
+             ifelse(length_kspmat < sidak_alpha, "*", "")), 
+      dim=dim(length_kspmat),
+      dimnames=list(rownames(length_kspmat), colnames(length_kspmat))),
+c("", "", ""),c("Age", "", ""),
+
+array(paste0(round(age_kspmat, 2),
+             ifelse(age_kspmat < sidak_alpha, "*", "")), 
+      dim=dim(age_kspmat),
+      dimnames=list(rownames(age_kspmat), colnames(age_kspmat)))),
+file="FDS_2024/R_output/Tab8.csv")
+}
+
 
 
 
