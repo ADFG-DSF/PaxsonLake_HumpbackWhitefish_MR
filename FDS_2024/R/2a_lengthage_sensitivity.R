@@ -84,19 +84,20 @@ ncores <- min(parallel::detectCores()-1, 10)
 tstart <- Sys.time()
 print(tstart)
 jags0 <- jagsUI::jags(model.file="lvb_jags2_multi_t0_free_4DIC", data=lvb_data2_multi_4DIC,
-                               parameters.to.save=c("mu","sig","L_inf","k","t0","ypp","P"),  # 
+                               parameters.to.save=c("mu","sig","L_inf","k","t0","P"),  # ,"ypp"
                                n.chains=ncores, parallel=T, n.iter=niter,
                                n.burnin=niter/2, n.thin=niter/2000)
 print(Sys.time() - tstart)
 }
 
 plotRhats(jags0)
-qq_postpred(jags0, p="ypp", y=lvb_data2_multi_4DIC$L)
-par(mfcol=c(3,3))
-plot_postpred(jags0, p="ypp", y=lvb_data2_multi_4DIC$L, x=lvb_data2_multi_4DIC$a)
+# qq_postpred(jags0, p="ypp", y=lvb_data2_multi_4DIC$L)
+# par(mfcol=c(3,3))
+# plot_postpred(jags0, p="ypp", y=lvb_data2_multi_4DIC$L, x=lvb_data2_multi_4DIC$a)
 
 
 # jags0$q50
+if(!("FDS_2024/sensitivity_outputs.Rdata" %in% list.files(recursive=TRUE))) {
 
 # initialize places to put results
 jags1_q50 <- jags1_sd <- jags1_overlap <- list()
@@ -132,6 +133,9 @@ for(i in 1:nrow(lvbdata)) {
   print(Sys.time() - tstart)
 }
 plotRhats(jags1)
+} else {
+  load(file="FDS_2024/sensitivity_outputs.Rdata")
+}
 
 par(mfrow=c(2,3))
 for(ip in 1:length(jags1_q50)) {
@@ -259,7 +263,7 @@ lvb_data2_multi_4DIC$whichmodel[2] <- 1
   tstart <- Sys.time()
   print(tstart)
   mod2_jags0 <- jagsUI::jags(model.file="lvb_jags2_multi_t0_free_4DIC", data=lvb_data2_multi_4DIC,
-                        parameters.to.save=c("mu","sig","L_inf","k","t0","ypp","P"),  # 
+                        parameters.to.save=c("mu","sig","L_inf","k","t0","P"),  # ,"ypp"
                         n.chains=ncores, parallel=T, n.iter=niter,
                         n.burnin=niter/2, n.thin=niter/2000)
   print(Sys.time() - tstart)
@@ -267,11 +271,14 @@ lvb_data2_multi_4DIC$whichmodel[2] <- 1
 
 par(mfrow=c(1,1))
 plotRhats(mod2_jags0)
-qq_postpred(mod2_jags0, p="ypp", y=lvb_data2_multi_4DIC$L)
-par(mfcol=c(3,3))
-plot_postpred(mod2_jags0, p="ypp", y=lvb_data2_multi_4DIC$L, x=lvb_data2_multi_4DIC$a)
+# qq_postpred(mod2_jags0, p="ypp", y=lvb_data2_multi_4DIC$L)
+# par(mfcol=c(3,3))
+# plot_postpred(mod2_jags0, p="ypp", y=lvb_data2_multi_4DIC$L, x=lvb_data2_multi_4DIC$a)
 
 # mod2_jags0$q50
+
+if(!("FDS_2024/sensitivity_outputs.Rdata" %in% list.files(recursive=TRUE))) {
+  
 
 # initialize places to put results
 mod2_jags1_q50 <- mod2_jags1_sd <- mod2_jags1_overlap <- list()
@@ -307,6 +314,7 @@ for(ip in 1:length(mod2_jags0$q50)) {
   print(Sys.time() - tstart)
 }
 plotRhats(mod2_jags1)
+}
 
 par(mfrow=c(2,3))
 for(ip in 1:length(mod2_jags1_q50)) {
@@ -414,10 +422,85 @@ for(ip in 1:length(mod2_jags1_q50)) {
   text(x=lvb_data2_multi_4DIC$a[these2], y=lvb_data2_multi_4DIC$L[these2], pos=4,
        labels=seq_along(yy0)[these2], col=4)
 }
+
+save(jags1_overlap, jags1_q50, jags1_sd,
+     mod2_jags1_overlap, mod2_jags1_q50, mod2_jags1_sd,
+     file="FDS_2024/sensitivity_outputs.Rdata")
 }
 
 
-
+## revisiting the plots I wanted to send to Corey
+par(mfrow=c(2,2))
+par(mar=c(4,4,4,2))
+for(ip in 1:4) {
+  plot(jags1_q50[[ip]], main=names(jags1_q50)[ip], 
+       col=adjustcolor("grey",alpha.f=.5),
+       ylim=range(jags1_q50[[ip]], jags0$q50[[ip]], na.rm=TRUE), xlim=c(0,310))
+  abline(h=jags0$q50[[ip]], lty=2)
+  yy0 <- jags1_q50[[ip]]
+  xx0 <- seq_along(yy0)
+  yy1 <- yy0[rank(yy0)<=3]
+  xx1 <- xx0[rank(yy0)<=3]
+  yy2 <- yy0[rank(yy0)>sum(!is.na(yy0))-3]
+  xx2 <- xx0[rank(yy0)>sum(!is.na(yy0))-3]
+  text(x=xx1, y=yy1, pos=4, col=2,
+       labels=xx1)
+  text(x=xx2, y=yy2, pos=4, col=4,
+       labels=xx2)
+  points(xx1, yy1, col=2, pch=16)
+  points(xx2, yy2, col=4, pch=16)
+}
+for(ip in 1:4) {
+  yy0 <- jags1_q50[[ip]]
+  these1 <- (rank(yy0)<=3) & !is.na(yy0)
+  these2 <- (rank(yy0)>sum(!is.na(yy0))-3) & !is.na(yy0)
+  plot(x=lvb_data2_multi_4DIC$a, y=lvb_data2_multi_4DIC$L, 
+       col=adjustcolor("grey",alpha.f=.5),
+       main=names(jags1_q50)[ip], xlim=c(5,40))
+  points(x=lvb_data2_multi_4DIC$a[these1], y=lvb_data2_multi_4DIC$L[these1],
+         pch=16, col=2)
+  points(x=lvb_data2_multi_4DIC$a[these2], y=lvb_data2_multi_4DIC$L[these2],
+         pch=16, col=4)
+  text(x=lvb_data2_multi_4DIC$a[these1], y=lvb_data2_multi_4DIC$L[these1], pos=4,
+       labels=seq_along(yy0)[these1], col=2)
+  text(x=lvb_data2_multi_4DIC$a[these2], y=lvb_data2_multi_4DIC$L[these2], pos=4,
+       labels=seq_along(yy0)[these2], col=4)
+}
+par(mfrow=c(2,2))
+for(ip in 1:4) {
+  plot(jags1_overlap[[ip]], main=names(jags1_q50)[ip], 
+       col=adjustcolor("grey",alpha.f=.5),
+       ylim=range(jags1_overlap[[ip]], na.rm=TRUE), xlim=c(0,310), log="y")
+  abline(h=jags0$q50[[ip]], lty=2)
+  yy0 <- jags1_overlap[[ip]]
+  xx0 <- seq_along(yy0)
+  yy1 <- yy0[rank(yy0)<=3]
+  xx1 <- xx0[rank(yy0)<=3]
+  yy2 <- yy0[rank(yy0)>sum(!is.na(yy0))-3]
+  xx2 <- xx0[rank(yy0)>sum(!is.na(yy0))-3]
+  text(x=xx1, y=yy1, pos=4, col=2,
+       labels=xx1)
+  text(x=xx2, y=yy2, pos=4, col=4,
+       labels=xx2)
+  points(xx1, yy1, col=2, pch=16)
+  points(xx2, yy2, col=4, pch=16)
+}
+for(ip in 1:4) {
+  yy0 <- jags1_overlap[[ip]]
+  these1 <- (rank(yy0)<=3) & !is.na(yy0)
+  these2 <- (rank(yy0)>sum(!is.na(yy0))-3) & !is.na(yy0)
+  plot(x=lvb_data2_multi_4DIC$a, y=lvb_data2_multi_4DIC$L, 
+       col=adjustcolor("grey",alpha.f=.5),
+       main=names(jags1_q50)[ip], xlim=c(5,40))
+  points(x=lvb_data2_multi_4DIC$a[these1], y=lvb_data2_multi_4DIC$L[these1],
+         pch=16, col=2)
+  points(x=lvb_data2_multi_4DIC$a[these2], y=lvb_data2_multi_4DIC$L[these2],
+         pch=16, col=4)
+  text(x=lvb_data2_multi_4DIC$a[these1], y=lvb_data2_multi_4DIC$L[these1], pos=4,
+       labels=seq_along(yy0)[these1], col=2)
+  text(x=lvb_data2_multi_4DIC$a[these2], y=lvb_data2_multi_4DIC$L[these2], pos=4,
+       labels=seq_along(yy0)[these2], col=4)
+}
 
 
 
