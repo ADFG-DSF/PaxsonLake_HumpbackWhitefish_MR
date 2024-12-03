@@ -1,6 +1,35 @@
+## The primary purpose of this script is to validate the Excel-based analysis
+## conducted by Corey Schwanke and April Behr.
+##
+## There are no analysis outputs produced in this script that are directly used,
+## however, the results should match (at least inferentially) what is reported.
+##
+## The Excel-based analysis consisted of a few iterations, as some discrepancies
+## were encountered.
+## * Growth was detected between the two capture events, and the second-event lengths
+##   were adjusted to be comparable to the first.  Originally, a linear regression
+##   was used to model the second-event lengths as a function of the first-event
+##   lengths, and the regression formula was inverted to "correct" the second-
+##   event lengths.  This was changed to a regression of the first-event lengths
+##   as a function of the second, which could be directly applied to correct the 
+##   second-event lengths.
+## * Counts of fish per size stratum did not match exactly; this was a result of
+##   the Excel formula missing a few fish with corrected lengths falling between
+##   the 345-399mm bin and the 400+mm bin.  The Excel sheet was modified to 
+##   calculate the FLOOR() of the corrected lengths.
+##
+## KS and Chi^2 tests all result in the same inferences as the Excel sheet, though
+## there are some differences in the exact numbers.  It is likely that the KS 
+## tests are calculated slightly differently in R vs Excel.
+
+
+
+
+### load packages
 library(tidyverse)
 library(recapr)
 library(dsftools)  # devtools::install_github("ADFG-DSF/dsftools")
+
 
 ### read data
 Event1 <- read_csv("FDS_2024/flat_data/Event1.csv", skip = 1) %>% 
@@ -40,8 +69,6 @@ for(i in 1:nrow(Event2)) {
 
 plot(Event2$`Fork Length Corrected (mm)`, lm_predict)
 abline(0,1)
-# I think it makes more sense to predict event 1 size from event 2, but this is 
-# essentially fine ---> THIS WAS CHANGED
 
 ####### addition 11/22
 Event2$`Fork Length Corrected (mm)` <- lm_predict
@@ -72,6 +99,7 @@ ks.test(Event1$`Fork Length (mm)` %s_geq% 400,
 ks.test(Event2$`Fork Length Corrected (mm)` %s_geq% 400, 
         Event2_recaps$`Fork Length Corrected (mm)` %s_geq% 400)
 
+## creating a function to streamline display of KS test output
 ksplot <- function(x1, x2, legend=c("x1","x2"), main="", col=c(1,1), lty=c(1,1), xlab="") {
   d1 <- density(x1, na.rm=TRUE)
   d2 <- density(x2, na.rm=TRUE)
@@ -164,6 +192,7 @@ sestrat(n1 = table(Event1$`Fork Length (mm)` >= 400),
 
 # As of 11/25, April attempted to reconcile the methods by ROUNDing the corrected lengths
 # This is an investigation of whether that worked
+# IT DID NOT FULLY WORK, recommended switching to FLOOR for full consistency
 lc <- data.frame(
           V1 = c(339,331,362,355,360,357,364,355,351,
                  380,393,352,344,340,390,408,393,324,408,372,359,

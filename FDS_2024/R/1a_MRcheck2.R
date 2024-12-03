@@ -1,3 +1,10 @@
+## This script was written when discrepancies between the R and Excel analyses 
+## became apparent, and exploration in a fresh script seemed desirable.
+##
+## IT IS LIKELY THAT THIS SCRIPT HAS NO REAL VALUE GOING FORWARD.  Delete??
+
+
+
 library(tidyverse)
 library(recapr)
 library(dsftools)  # devtools::install_github("ADFG-DSF/dsftools")

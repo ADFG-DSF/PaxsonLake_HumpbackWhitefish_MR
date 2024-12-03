@@ -1,3 +1,31 @@
+## The purpose of this script was to investigate the existence of overly influential 
+## data points in the Length ~ Age relationship.
+##
+## The top two models were fit, with each data point removed in sequence, in order
+## to explore how much inference would change for each parameter as a result of 
+## inclusion or exclusion of each data point.
+##
+## This was done for the VB and Generalized VB models, with lognormal error, and
+## an informed prior on asymptotic length L_inf
+##
+## The sequence of models is particularly long-running.  A logical switch exists to
+## read the associated output from an .Rdata file if this exists, and run the 
+## models otherwise.
+##
+## Plots are then produced associated with each parameter for the following:
+## - point estimate (posterior median) excluding the data point in question
+## - standard error (posterior sd) excluding the data point in question
+## - posterior overlap (intersection/union) including vs excluding the data point
+## Large differences between models including vs excluding the data point in question
+## may be taken as evidence of a very influential data point.  For each sequence of
+## plots listed above, the top and bottom three points are graphically highlighted.
+## The raw input data is then plotted, with the same points highlighted.
+##
+## Some data points were indeed much more influential than others (point 73 comes to mind).
+## However, the decision was made not to censor any data point.
+
+
+
 library(tidyverse)
 library(dsftools)
 library(jagsUI)
@@ -11,6 +39,9 @@ spawn_sample <- read_csv("FDS_2024/flat_data/spawn_sample.csv")%>%
   janitor::remove_empty(which = "rows") %>%
   mutate(Date = as.Date(Date, format="%m/%d/%Y"))
 
+
+# defining a function to calculate overlap (intersection/union) of two vectors
+# of mcmc samples
 mcmc_overlap <- function(x1, x2) {
   # thebreaks <- seq(from=min(x1, x2, na.rm=TRUE), 
   #                  to=max(x1, x2, na.rm=TRUE), 
@@ -66,7 +97,10 @@ lvb_data2_multi_4DIC <- list(L=lvbdata$Length,
 
 lvb_data2_multi_4DIC$whichmodel <- rep(0,4)
 
-{
+
+
+#### the same block of code is copy/pasted for both models - this isn't the greatest practice, sorry
+
 ################################ starts here #################################
 
 ### switch for which model

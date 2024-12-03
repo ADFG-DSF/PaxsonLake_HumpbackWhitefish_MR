@@ -1,11 +1,45 @@
+## The purpose of this script was to run all analyses pertaining to Age, Length, and Weight
+## in the spawning sample.  Specifically, these were to
+## * Tabulate summary statistics of length by age bin
+## * Model length as a function of age, using a Von Bertalanffy (or similar) growth function
+## * Compare length and weight frequency distributions at three discrete times during spawning
+
+## Comparatively, much more code is devoted to the length ~ age relationship! Curve-fitting
+## was done with a Bayesian model using JAGS.  Some necessary context for understanding
+## the code that follows:
+## * Model development
+##   - Four candidate growth curves were fit (VB, generalized VB, Logistic, and Gompertz)
+##   - Additionally, the t0 parameter was either constrained to zero or allowed to vary
+##   - Normal (additive) error was initially used, but lognormal (multiplicative) was selected
+##   - An informed prior was ultimately used for the asymptotic length parameter L_inf, as the
+##     inferences for this parameter did not seem reasonable.  An informed prior was therefore
+##     taken from a previous analysis, reported here: https://www.adfg.alaska.gov/FedAidPDFs/FDS24-08.pdf
+## * Diagnostics used for model comparison
+##   - Typical convergence tools (trace plots, Rhat, etc)
+##   - Model comparison using DIC, calculated for VERY long runs
+##   - K-fold cross validation, scored by RMSE (root mean squared error) and MAE (mean absolute error)
+##   - an additional exploration was conducted in 2a_lengthage_sensitivity.R, but is not directly used
+## * Additional code structure
+##   - For long-running sections, often some controls exist for whether to run a section or not.
+##     These might be logical variables, or checks for whether a .Rdata file exists in the directory
+##     (plus an additional control to override the check and run the section anyway)
+
+
+
+
+
+# loading packages
 library(tidyverse)
 library(dsftools)
 library(jagsUI)
 library(jagshelper)
 
 
+
+# whether to write ouput objects to an external file
 write_output <- FALSE
 # write_output <- TRUE
+
 
 
 # reading data
@@ -13,6 +47,12 @@ spawn_sample <- read_csv("FDS_2024/flat_data/spawn_sample.csv")%>%
   janitor::remove_empty(which = "cols") %>% 
   janitor::remove_empty(which = "rows") %>%
   mutate(Date = as.Date(Date, format="%m/%d/%Y"))
+
+
+
+
+
+############# Tabulating summary statistics for lengths by age bin ##########
 
 # defining breaks for age and length
 agebreaks <- c(5, 10, 15 ,20, 30, 40)
@@ -60,6 +100,8 @@ with(spawn_sample,
 
 
 
+
+############## Modeling length as a function of age ###############
 
 ## trying multi-model   - LOGNORMAL ERROR
 cat('model {
@@ -621,7 +663,15 @@ caterpillar(rmse_mat)
 caterpillar(mae_mat)
 
 
-####### looking at the length & age distrib of the spawning sample by date
+
+
+
+
+
+############### looking at the length & age distrib of the spawning sample by date ############### 
+
+## exploratory plots
+
 par(mfrow=c(2,3))
 with(spawn_sample,
      boxplot(Length ~ Date, main="All"))
@@ -706,6 +756,9 @@ with(subset(spawn_sample, Sex=="M"), {
 })
 
 
+
+## defining a matrix of ks test p-values, which will become Table 8
+
 length_kspmat <- age_kspmat <- matrix(nrow=3, ncol=3)
 
 length_kspmat[1,1] <- with(spawn_sample, 
@@ -777,21 +830,10 @@ file="FDS_2024/R_output/Tab8.csv")
 
 
 
-## to do still:
-# VB growth curve
 
-# VB growth params
-
-# table: mean length for age bins
-
-# KS or AD test?  - lengths and ages
-# Variable 1	              Variable 2	              Variable 3	          Uncorrected KS P-value
-# All fish from 12/19/23	  All fish from 12/28/23	  All fish from 1/3/24	0.41
-# Males from 12/19/23	      Males from 12/28/23	      Males from 1/3/24	    0.20
-# Females from 12/19/23	    Females from 12/28/23	    Females from 1/3/24	  0.72
-# All males from all dates	All females from all dates		                  X.XX
-
-
+#### making an exploratory plot of the presence of cohorts:
+#### Corey will do this in Excel and this code exists as a proof of concept
+#### (but is otherwise abandoned)
 
 ## cohort thing??
 asl_2021 <- read_csv("FDS_2024/flat_data/ASL_2021.csv") %>% 
