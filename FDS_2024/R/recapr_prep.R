@@ -293,6 +293,9 @@ correct_growth <- function(x,
                            ID_keep, ID_adjust) {
   # insert error checking
   
+  # make a copy to modify
+  x1 <- x
+  
   # regression bit
   yreg <- x$recaps$matched[[paste(column_keep, event_keep, sep="_")]]
   xreg <- x$recaps$matched[[paste(column_adjust, event_adjust, sep="_")]]
@@ -313,16 +316,58 @@ correct_growth <- function(x,
   }
   
   ## actually should make new columns for these:
-  # need to change it in x$input_data[[event_adjust]][[column_adjust]]
-  x$input_data[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]] <- unname(ypred)
+  # need to change it in x1$input_data[[event_adjust]][[column_adjust]]
+  x1$input_data[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]] <- unname(ypred)
   
-  # need to change it in x$recaps$unmatched[[event_adjust]][[column_adjust]]
-  # need to change it in x$recaps$all[[event_adjust]][[column_adjust]]
+  # change it in matched
+  x1$recaps$matched[[paste(column_adjust, event_adjust, "adjusted", sep="_")]] <- yreg
+  
+  # need to change it in x1$recaps$unmatched[[event_adjust]][[column_adjust]]
+  x1$recaps$unmatched[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]] <-
+    unname(predict(lm1, newdata = data.frame(xreg=x1$recaps$unmatched[[event_adjust]][[column_adjust]])))
+  
+  # need to change it in x1$recaps$all[[event_adjust]][[column_adjust]]
+  x1$recaps$all[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]] <-
+    unname(predict(lm1, newdata = data.frame(xreg=x1$recaps$all[[event_adjust]][[column_adjust]])))
+  ytag <- x1$recaps$all[[event_adjust]][[ID_adjust]]
+  keeptag <- x$recaps$matched[[paste(ID_keep, event_keep, sep="_")]]
+  for(iy in seq_along(ytag)) {
+    if(!is.na(ytag[iy])) {
+      if(ytag[iy] %in% keeptag) {
+        x1$recaps$all[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]][iy] <- 
+          yreg[keeptag==ytag[iy]]  
+      }
+    }
+  }
+  
+  return(x1)
 }
-correct_growth(x=aa, 
+aa1 <- correct_growth(x=aa, 
                event_keep="event1", 
                event_adjust="event2", 
                column_keep="Fork Length (mm)", 
                column_adjust="Fork Length (mm)",
                ID_keep="Tag Number",
                ID_adjust="Tag Number")
+
+lm1 <- lm(aa$recaps$matched$`Fork Length (mm)_event1` ~ aa$recaps$matched$`Fork Length (mm)_event2`)
+
+plot(aa1$input_data$event2$`Fork Length (mm)`, aa1$input_data$event2$`Fork Length (mm)_adjusted`,
+     pch=ifelse(aa1$input_data$event2$`Tag Number` %in% aa$recaps$matched$`Tag Number_event1`, 16, 1))
+abline(lm1)
+abline(0, 1, lty=3)
+
+plot(aa1$recaps$matched$`Fork Length (mm)_event2`, aa1$recaps$matched$`Fork Length (mm)_event2_adjusted`)
+plot(aa1$recaps$matched$`Fork Length (mm)_event1`, aa1$recaps$matched$`Fork Length (mm)_event2_adjusted`)
+abline(0, 1, lty=3)
+
+plot(aa1$recaps$unmatched$event2$`Fork Length (mm)`, aa1$recaps$unmatched$event2$`Fork Length (mm)_adjusted`)
+abline(lm1)
+
+plot(aa1$recaps$all$event2$`Fork Length (mm)`, aa1$recaps$all$event2$`Fork Length (mm)_adjusted`,
+     pch=ifelse(aa1$recaps$all$event2$`Tag Number` %in% aa$recaps$matched$`Tag Number_event1`, 16, 1))
+abline(lm1)
+
+all.equal(aa1$input_data$event1, aa$input_data$event1)
+all.equal(aa1$recaps$unmatched$event1, aa$recaps$unmatched$event1)
+all.equal(aa1$recaps$all$event1, aa$recaps$all$event1)
