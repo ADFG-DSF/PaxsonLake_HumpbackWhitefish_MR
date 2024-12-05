@@ -1,3 +1,5 @@
+# a helper function that returns the order of a character vector, but preserves
+# numeric values correctly (i.e. 9 comes before 10)
 orderlikeanumber <- function(x, stopiferror=TRUE) {
   x_num <- suppressWarnings(as.numeric(as.character(x)))
   if(any(x_num < 0, na.rm=TRUE)) {
@@ -24,9 +26,12 @@ orderlikeanumber <- function(x, stopiferror=TRUE) {
   
   return(order(x1))
 }
+
+# a wrapper of orderlikeanumber that returns a re-ordered vector
 reorderlikeanumber <- function(x, ...) x[orderlikeanumber(x, ...=...)]
 
 
+## this is the big one: it reorganizes mark-recapture datasets
 recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
   dots <- list(...)
   if(length(dots) == 0) stop("Need to add input data")
@@ -185,7 +190,12 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
 #         unlist(strsplit(substr(x2, 1, minn), split="")))/maxn)
 # }
 
+
+
+# a helper function that splices two data.frames by column name
 interleave <- function(x1, x2, thenames=NULL) {
+  
+  # need error checking: x1 and x2 need to be data.frames or similar, and of the same length
   
   names1 <- colnames(x1)
   names2 <- colnames(x2)
@@ -287,11 +297,18 @@ interleave <- function(x1, x2, thenames=NULL) {
 # aa <- recapr_prep(ID=c("Tag Number","Tag Number","steve"),event1=Event1, event2=Event2)   # needed data=bothevents
 # str(aa)
 
+
+
+## the next big one - this takes an input from recapr_prep and uses linear regression to correct for growth
 correct_growth <- function(x, 
                            event_keep, event_adjust,
                            column_keep, column_adjust,
                            ID_keep, ID_adjust) {
   # insert error checking
+  # - needs to be an object returned by recapr_prep
+  # - event names must exist
+  # - column names must exist in both events
+  # - ID names must exist (maybe make ID_adjust=ID_keep by default)
   
   # make a copy to modify
   x1 <- x
@@ -320,7 +337,8 @@ correct_growth <- function(x,
   x1$input_data[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]] <- unname(ypred)
   
   # change it in matched
-  x1$recaps$matched[[paste(column_adjust, event_adjust, "adjusted", sep="_")]] <- yreg
+  # x1$recaps$matched[[paste(column_adjust, event_adjust, "adjusted", sep="_")]] <- yreg
+  x1$recaps$matched[[paste(column_adjust, "adjusted", event_adjust, sep="_")]] <- yreg    # reordered
   
   # need to change it in x1$recaps$unmatched[[event_adjust]][[column_adjust]]
   x1$recaps$unmatched[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]] <-
@@ -342,6 +360,122 @@ correct_growth <- function(x,
   
   return(x1)
 }
+
+
+
+# big function to truncate objects according to a min and max value
+truncate <- function(x, event_names, column_names, min=NULL, max=NULL) {
+  
+  # error checking
+  
+  # create a copy to modify
+  x1 <- x
+  
+  # x1$input_data[[event_names[1]]] %>% str
+  # x1$input_data[[event_names[2]]] %>% str
+  # x1$recaps$unmatched[[event_names[1]]] %>% str
+  # x1$recaps$unmatched[[event_names[2]]] %>% str
+  # x1$recaps$all[[event_names[1]]] %>% str
+  # x1$recaps$all[[event_names[2]]] %>% str
+  for(ii in 1:2) {
+    if(!is.null(min)) {
+      x1$input_data[[event_names[ii]]] <- subset(x1$input_data[[event_names[ii]]], 
+                                                 x1$input_data[[event_names[ii]]][[column_names[ii]]] >= min)
+      x1$recaps$unmatched[[event_names[ii]]] <- subset(x1$recaps$unmatched[[event_names[ii]]],
+                                                       x1$recaps$unmatched[[event_names[ii]]][[column_names[ii]]] >= min)
+      x1$recaps$all[[event_names[ii]]] <- subset(x1$recaps$all[[event_names[ii]]],
+                                                 x1$recaps$all[[event_names[ii]]][[column_names[ii]]] >= min)
+    }
+    if(!is.null(max)) {
+      x1$input_data[[event_names[ii]]] <- subset(x1$input_data[[event_names[ii]]], 
+                                                 x1$input_data[[event_names[ii]]][[column_names[ii]]] <= max)
+      x1$recaps$unmatched[[event_names[ii]]] <- subset(x1$recaps$unmatched[[event_names[ii]]],
+                                                       x1$recaps$unmatched[[event_names[ii]]][[column_names[ii]]] <= max)
+      x1$recaps$all[[event_names[ii]]] <- subset(x1$recaps$all[[event_names[ii]]],
+                                                 x1$recaps$all[[event_names[ii]]][[column_names[ii]]] <= max)
+    }
+  }
+  
+  # check to make sure subsetting agrees for matched fish
+  logi1 <- logi2 <- rep(TRUE, nrow(x1$recaps$matched))
+  if(!is.null(min)) {
+    logi1[x1$recaps$matched[[paste(column_names[1], event_names[1], sep="_")]] < min] <- FALSE
+    logi2[x1$recaps$matched[[paste(column_names[2], event_names[2], sep="_")]] < min] <- FALSE
+  }
+  if(!is.null(max)) {
+    logi1[x1$recaps$matched[[paste(column_names[1], event_names[1], sep="_")]] > max] <- FALSE
+    logi2[x1$recaps$matched[[paste(column_names[2], event_names[2], sep="_")]] > max] <- FALSE
+  }
+  if(!all(logi1 == logi2)) {
+    warning(paste("Disagreement in truncation for", sum(logi1 != logi2), "recaptured individuals"))
+  }
+  
+  # x1$recaps$matched %>% str
+  if(!is.null(min)) {
+    x1$recaps$matched <- subset(x1$recaps$matched,
+                                x1$recaps$matched[[paste(column_names[1], event_names[1], sep="_")]] >= min & 
+                                  x1$recaps$matched[[paste(column_names[2], event_names[2], sep="_")]] >= min)
+  }
+  if(!is.null(max)) {
+    x1$recaps$matched <- subset(x1$recaps$matched,
+                                x1$recaps$matched[[paste(column_names[1], event_names[1], sep="_")]] <= max & 
+                                  x1$recaps$matched[[paste(column_names[2], event_names[2], sep="_")]] <= max)
+  }
+  
+  return(x1)
+}
+
+
+
+stratify <- function(x, event_names, column_names, breaks, right=FALSE) {
+  
+  # error checking
+  
+  # create a copy to modify
+  x1 <- x
+  
+  levelmaker <- c(x1$input_data[[event_names[1]]][[column_names[1]]],
+                  x1$input_data[[event_names[2]]][[column_names[2]]])
+  testcut <- cut(levelmaker, breaks=breaks, right=right)
+  thelevels <- levels(testcut)
+  
+  if(right) {
+    if(min(levelmaker, na.rm=TRUE) <= min(breaks) | max(levelmaker, na.rm=TRUE) > max(breaks)) {
+      warning("Data exists beyond range of stratum breaks: min and max must be included")
+    }
+  } else {
+    if(min(levelmaker, na.rm=TRUE) < min(breaks) | max(levelmaker, na.rm=TRUE) >= max(breaks)) {
+      warning("Data exists beyond range of stratum breaks: min and max must be included")
+    }
+  }
+}
+
+
+
+############ ---------- testing zone ------------ #############
+
+### load packages
+library(tidyverse)
+library(recapr)
+library(dsftools)  # devtools::install_github("ADFG-DSF/dsftools")
+
+
+### read data
+Event1 <- read_csv("FDS_2024/flat_data/Event1.csv", skip = 1) %>% 
+  janitor::remove_empty(which = "cols") %>% 
+  janitor::remove_empty(which = "rows") %>%
+  mutate(`Tag Number` = as.character(`Tag Number`))
+
+Event2 <- read_csv("FDS_2024/flat_data/Event2.csv", skip = 1) %>% 
+  janitor::remove_empty(which = "cols") %>% 
+  janitor::remove_empty(which = "rows") %>%
+  mutate(`Tag Number` = as.character(`Tag Number`))
+
+
+aa <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2, recap_codes="TL")
+
+
+
 aa1 <- correct_growth(x=aa, 
                event_keep="event1", 
                event_adjust="event2", 
@@ -357,8 +491,10 @@ plot(aa1$input_data$event2$`Fork Length (mm)`, aa1$input_data$event2$`Fork Lengt
 abline(lm1)
 abline(0, 1, lty=3)
 
-plot(aa1$recaps$matched$`Fork Length (mm)_event2`, aa1$recaps$matched$`Fork Length (mm)_event2_adjusted`)
-plot(aa1$recaps$matched$`Fork Length (mm)_event1`, aa1$recaps$matched$`Fork Length (mm)_event2_adjusted`)
+# plot(aa1$recaps$matched$`Fork Length (mm)_event2`, aa1$recaps$matched$`Fork Length (mm)_event2_adjusted`)
+# plot(aa1$recaps$matched$`Fork Length (mm)_event1`, aa1$recaps$matched$`Fork Length (mm)_event2_adjusted`)
+plot(aa1$recaps$matched$`Fork Length (mm)_event2`, aa1$recaps$matched$`Fork Length (mm)_adjusted_event2`)
+plot(aa1$recaps$matched$`Fork Length (mm)_event1`, aa1$recaps$matched$`Fork Length (mm)_adjusted_event2`)
 abline(0, 1, lty=3)
 
 plot(aa1$recaps$unmatched$event2$`Fork Length (mm)`, aa1$recaps$unmatched$event2$`Fork Length (mm)_adjusted`)
@@ -371,3 +507,35 @@ abline(lm1)
 all.equal(aa1$input_data$event1, aa$input_data$event1)
 all.equal(aa1$recaps$unmatched$event1, aa$recaps$unmatched$event1)
 all.equal(aa1$recaps$all$event1, aa$recaps$all$event1)
+
+
+
+aa2 <- truncate(x = aa1,
+                event_names = c("event1", "event2"),
+                column_names = c("Fork Length (mm)", "Fork Length (mm)_adjusted"),
+                min = 345, max = 400)
+str(aa2)
+range(aa1$input_data$event1$`Fork Length (mm)`)
+range(aa2$input_data$event1$`Fork Length (mm)`)
+range(aa1$input_data$event2$`Fork Length (mm)_adjusted`)
+range(aa2$input_data$event2$`Fork Length (mm)_adjusted`)
+range(aa1$recaps$matched$`Fork Length (mm)_event1`)
+range(aa2$recaps$matched$`Fork Length (mm)_event1`)
+range(aa1$recaps$matched$`Fork Length (mm)_adjusted_event2`)
+range(aa2$recaps$matched$`Fork Length (mm)_adjusted_event2`)
+range(aa1$recaps$unmatched$event1$`Fork Length (mm)`)
+range(aa2$recaps$unmatched$event1$`Fork Length (mm)`)
+range(aa1$recaps$unmatched$event2$`Fork Length (mm)`)
+range(aa2$recaps$unmatched$event2$`Fork Length (mm)_adjusted`)
+range(aa1$recaps$all$event1$`Fork Length (mm)`)
+range(aa2$recaps$all$event1$`Fork Length (mm)`)
+range(aa1$recaps$all$event2$`Fork Length (mm)_adjusted`)
+range(aa2$recaps$all$event2$`Fork Length (mm)_adjusted`)
+
+
+# could theoretically
+# - automate ks tests
+# - automate chisq tests -> make inputs for recapr::consistencytest
+# - df of all unique fish
+# - apply stratification schemes
+# - tabulate stratificationses
