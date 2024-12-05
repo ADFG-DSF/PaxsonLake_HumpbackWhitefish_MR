@@ -1,6 +1,11 @@
 # a helper function that returns the order of a character vector, but preserves
 # numeric values correctly (i.e. 9 comes before 10)
 orderlikeanumber <- function(x, stopiferror=TRUE) {
+  
+  # error handling: 
+  # - check if input is a vector
+  # - what happens with NA?
+  
   x_num <- suppressWarnings(as.numeric(as.character(x)))
   if(any(x_num < 0, na.rm=TRUE)) {
     if(stopiferror) {
@@ -367,6 +372,11 @@ correct_growth <- function(x,
 truncate <- function(x, event_names, column_names, min=NULL, max=NULL) {
   
   # error checking
+  # - needs to be an object returned by recapr_prep
+  # - event names must exist
+  # - column names must exist in both events
+  # - columns must be numeric in both events
+  # - min and max must be numeric if they are not null
   
   # create a copy to modify
   x1 <- x
@@ -427,18 +437,25 @@ truncate <- function(x, event_names, column_names, min=NULL, max=NULL) {
 
 
 
-stratify <- function(x, event_names, column_names, breaks, right=FALSE) {
+stratify <- function(x, event_names, column_names, breaks, right=FALSE, dig.lab=6) {
   
   # error checking
+  # - needs to be an object returned by recapr_prep
+  # - event names must exist
+  # - column names must exist in both events
+  # - columns must be numeric in both events
+  # - breaks must be numeric 
   
   # create a copy to modify
   x1 <- x
   
+  # create a dummy factor to make sure levels are consistent and check range
   levelmaker <- c(x1$input_data[[event_names[1]]][[column_names[1]]],
                   x1$input_data[[event_names[2]]][[column_names[2]]])
-  testcut <- cut(levelmaker, breaks=breaks, right=right)
+  testcut <- cut(levelmaker, breaks=breaks, right=right, dig.lab=dig.lab)
   thelevels <- levels(testcut)
   
+  # checking range
   if(right) {
     if(min(levelmaker, na.rm=TRUE) <= min(breaks) | max(levelmaker, na.rm=TRUE) > max(breaks)) {
       warning("Data exists beyond range of stratum breaks: min and max must be included")
@@ -449,16 +466,35 @@ stratify <- function(x, event_names, column_names, breaks, right=FALSE) {
     }
   }
   
+  # creating factor columns
   for(ii in 1:2) {
     x1$input_data[[event_names[ii]]][[paste(column_names[ii], "strat", sep="_")]] <- 
-      factor(cut(x1$input_data[[event_names[ii]]][[column_names[ii]]], breaks=breaks, right=right), levels=thelevels)
+      factor(cut(x1$input_data[[event_names[ii]]][[column_names[ii]]], 
+                 breaks=breaks, right=right, dig.lab=dig.lab), levels=thelevels)
     
     x1$recaps$unmatched[[event_names[ii]]][[paste(column_names[ii], "strat", sep="_")]] <- 
-      factor(cut(x1$recaps$unmatched[[event_names[ii]]][[column_names[ii]]], breaks=breaks, right=right), levels=thelevels)
+      factor(cut(x1$recaps$unmatched[[event_names[ii]]][[column_names[ii]]], 
+                 breaks=breaks, right=right, dig.lab=dig.lab), levels=thelevels)
     
     x1$recaps$all[[event_names[ii]]][[paste(column_names[ii], "strat", sep="_")]] <- 
-      factor(cut(x1$recaps$all[[event_names[ii]]][[column_names[ii]]], breaks=breaks, right=right), levels=thelevels)
+      factor(cut(x1$recaps$all[[event_names[ii]]][[column_names[ii]]], 
+                 breaks=breaks, right=right, dig.lab=dig.lab), levels=thelevels)
+    
+    x1$recaps$matched[[paste(column_names[ii], "strat", event_names[ii], sep="_")]] <- 
+      factor(cut(x1$recaps$matched[[paste(column_names[ii], event_names[ii], sep="_")]], 
+               breaks=breaks, right=right, dig.lab=dig.lab), levels=thelevels)
   }
+  
+  # checking if there is disagreement in $recaps$matched factor columns
+  s1 <- x1$recaps$matched[[paste(column_names[1], "strat", event_names[1], sep="_")]]
+  s2 <- x1$recaps$matched[[paste(column_names[2], "strat", event_names[2], sep="_")]]
+  if(!isTRUE(all.equal(s1, s2))) {
+    warning(paste("Disagreement in stratum assignment for", 
+                  sum(s1 != s2, na.rm=TRUE) + sum(is.na(s1) != is.na(s2)), 
+                  "recaptured individuals"))
+  }
+  
+  return(x1)
 }
 
 
@@ -544,9 +580,33 @@ range(aa1$recaps$all$event2$`Fork Length (mm)_adjusted`)
 range(aa2$recaps$all$event2$`Fork Length (mm)_adjusted`)
 
 
+aa3 <- stratify(x = aa1,
+                event_names = c("event1", "event2"),
+                column_names = c("Fork Length (mm)", "Fork Length (mm)_adjusted"),#
+                breaks = c(200, 345, 400, 1000))
+str(aa3)
+plot(aa3$input_data$event1$`Fork Length (mm)` ~ aa3$input_data$event1$`Fork Length (mm)_strat`)
+plot(aa3$input_data$event2$`Fork Length (mm)_adjusted` ~ aa3$input_data$event2$`Fork Length (mm)_adjusted_strat`)
+plot(aa3$recaps$matched$`Fork Length (mm)_event1` ~ aa3$recaps$matched$`Fork Length (mm)_strat_event1`)
+plot(aa3$recaps$matched$`Fork Length (mm)_adjusted_event2` ~ aa3$recaps$matched$`Fork Length (mm)_adjusted_strat_event2`)
+plot(aa3$recaps$unmatched$event2$`Fork Length (mm)_adjusted` ~ aa3$recaps$unmatched$event2$`Fork Length (mm)_adjusted_strat`)
+plot(aa3$recaps$all$event1$`Fork Length (mm)` ~ aa3$recaps$all$event1$`Fork Length (mm)_strat`)
+plot(aa3$recaps$all$event2$`Fork Length (mm)_adjusted` ~ aa3$recaps$all$event2$`Fork Length (mm)_adjusted_strat`)
+
 # could theoretically
 # - automate ks tests
 # - automate chisq tests -> make inputs for recapr::consistencytest
 # - df of all unique fish
 # - apply stratification schemes
 # - tabulate stratificationses
+
+# edge cases i can think of
+# - will $matched ever be constructed of things with different lengths?
+# - what happens when there are NA values in (length)
+#   * truncate
+#   * stratify
+#   * correct_growth
+# - (maybe change adjusted to corrected, or else correct_growth to adjust_growth or growth_correction)
+# - could there be NA in ID column?
+# - what happens when data is not named in recapr_prep?
+# - what happens when min and max are left null?
