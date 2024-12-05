@@ -448,6 +448,17 @@ stratify <- function(x, event_names, column_names, breaks, right=FALSE) {
       warning("Data exists beyond range of stratum breaks: min and max must be included")
     }
   }
+  
+  for(ii in 1:2) {
+    x1$input_data[[event_names[ii]]][[paste(column_names[ii], "strat", sep="_")]] <- 
+      factor(cut(x1$input_data[[event_names[ii]]][[column_names[ii]]], breaks=breaks, right=right), levels=thelevels)
+    
+    x1$recaps$unmatched[[event_names[ii]]][[paste(column_names[ii], "strat", sep="_")]] <- 
+      factor(cut(x1$recaps$unmatched[[event_names[ii]]][[column_names[ii]]], breaks=breaks, right=right), levels=thelevels)
+    
+    x1$recaps$all[[event_names[ii]]][[paste(column_names[ii], "strat", sep="_")]] <- 
+      factor(cut(x1$recaps$all[[event_names[ii]]][[column_names[ii]]], breaks=breaks, right=right), levels=thelevels)
+  }
 }
 
 
