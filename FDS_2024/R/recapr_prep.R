@@ -4,7 +4,9 @@ orderlikeanumber <- function(x, stopiferror=TRUE) {
   
   # error handling: 
   # - check if input is a vector
-  # - what happens with NA?
+  if(!(is.vector(x) & is.atomic(x))) stop("Input must be a vector")
+  
+  # - what happens with NA?  It puts them at the end by default.  We can live with that.
   
   x_num <- suppressWarnings(as.numeric(as.character(x)))
   if(any(x_num < 0, na.rm=TRUE)) {
@@ -41,6 +43,12 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
   dots <- list(...)
   if(length(dots) == 0) stop("Need to add input data")
   
+  # don't know why anyone would use NA in recap_codes, but not allowing this
+  if(any(is.na(recap_codes))) {
+    warning("NA not supported in recap_codes, removing these")
+    recap_codes <- recap_codes[!is.na(recap_codes)]
+  }
+  
   # check to make sure all the data objects are data.frame or similar
   if(all(sapply(dots, inherits, c("data.frame", "matrix")))) {
     for(idots in 1:length(dots)) {
@@ -62,6 +70,9 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
         stop("Specified ID= column not detected in the second data table")
       }
       out <- list()
+      if(is.null(names(dots))) {
+        names(dots) <- 1:2
+      }
       out$input_data <- dots
       the_events <- names(out$input_data)
     }
@@ -184,7 +195,7 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
   #   names(out$recaps) <- names(out)[1:2]
   # }
   
-  
+  class(out) <- "MR_data"
   return(out)
 }
 
@@ -201,6 +212,10 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
 interleave <- function(x1, x2, thenames=NULL) {
   
   # need error checking: x1 and x2 need to be data.frames or similar, and of the same length
+  if(!inherits(x1, c("data.frame", "matrix")) | !inherits(x2, c("data.frame", "matrix"))) {
+    stop("Inputs must be data.frames or similar")
+  }
+  if(nrow(x1) != nrow(x2)) stop("Inputs must have the same number of rows")
   
   names1 <- colnames(x1)
   names2 <- colnames(x2)
@@ -238,17 +253,6 @@ interleave <- function(x1, x2, thenames=NULL) {
   }
   
   return(out)
-  
-  
-  # propmat <- outer(names1, names2, FUN=Vectorize(propmatch)) # rows from names1, columns from names2
-  # thedim <- ifelse(length(names1) <= length(names2), 1, 2)
-  # 
-  # whichmaxes <- apply(propmat, thedim, which.max)
-  
-  # if(method=="first" | (method=="smaller" & ncol(x1) <= ncol(x2)) | (method=="larger" & ncol(x1) > ncol(x2))) {
-  #   exactmatch <- sapply(sapply(names1, \(x) which(names2==x)), \(x) ifelse(is.null(x), NA, x))
-  #   
-  # }
 }
 # interleave(x1=recaps1_matched[,1:2], x2=recaps2_matched[,2:3])
 # interleave(x1=as.data.frame(recaps1_matched)[,1:2], 
@@ -308,12 +312,34 @@ interleave <- function(x1, x2, thenames=NULL) {
 correct_growth <- function(x, 
                            event_keep, event_adjust,
                            column_keep, column_adjust,
-                           ID_keep, ID_adjust) {
+                           ID_keep, ID_adjust=ID_keep) {
   # insert error checking
   # - needs to be an object returned by recapr_prep
+  if(!inherits(x, "MR_data")) stop("Argument x= must be an object returned from recapr_prep()")
+  
   # - event names must exist
+  if(!(event_keep %in% names(x$input_data))) {
+    stop("Argument event_keep= not found in event names")
+  }
+  if(!(event_adjust %in% names(x$input_data))) {
+    stop("Argument event_adjust= not found in event names")
+  }
+  
   # - column names must exist in both events
+  if(!(column_keep %in% names(x$input_data[[event_keep]]))) {
+    stop(paste("Argument column_keep= not found in", event_keep, "data"))
+  }
+  if(!(column_adjust %in% names(x$input_data[[event_adjust]]))) {
+    stop(paste("Argument column_adjust= not found in", event_adjust, "data"))
+  }
+  
   # - ID names must exist (maybe make ID_adjust=ID_keep by default)
+  if(!(ID_keep %in% names(x$input_data[[event_keep]]))) {
+    stop(paste("Argument ID_keep= not found in", event_keep, "data"))
+  }
+  if(!(ID_adjust %in% names(x$input_data[[event_adjust]]))) {
+    stop(paste("Argument ID_adjust= not found in", event_adjust, "data"))
+  }
   
   # make a copy to modify
   x1 <- x
@@ -373,10 +399,34 @@ truncate <- function(x, event_names, column_names, min=NULL, max=NULL) {
   
   # error checking
   # - needs to be an object returned by recapr_prep
+  if(!inherits(x, "MR_data")) stop("Argument x= must be an object returned from recapr_prep()")
+  
+  # must be two event names and two column names
+  if(length(event_names) != 2) stop("Must supply two event names")
+  if(length(column_names) != 2) stop("Must supply two column names")
+  
   # - event names must exist
+  if(!(all(event_names %in% names(x$input_data)))) {
+    stop("Supplied event names not found in data event names")
+  }
+  
   # - column names must exist in both events
+  if(!(column_names[1] %in% names(x$input_data[[event_names[1]]]))) {
+    stop(paste("Column name not found in", event_names[1], "data"))
+  }
+  if(!(column_names[2] %in% names(x$input_data[[event_names[2]]]))) {
+    stop(paste("Column name not found in", event_names[2], "data"))
+  }
+  
   # - columns must be numeric in both events
+  if(!is.numeric(x$input_data[[event_names[1]]][[column_names[1]]]) | 
+     !is.numeric(x$input_data[[event_names[2]]][[column_names[2]]])) {
+    stop("Non-numeric columns detected")
+  }
+  
   # - min and max must be numeric if they are not null
+  if(!is.null(min) & !is.numeric(min)) stop("Argument min= must be numeric")
+  if(!is.null(max) & !is.numeric(max)) stop("Argument max= must be numeric")
   
   # create a copy to modify
   x1 <- x
@@ -441,10 +491,33 @@ stratify <- function(x, event_names, column_names, breaks, right=FALSE, dig.lab=
   
   # error checking
   # - needs to be an object returned by recapr_prep
+  if(!inherits(x, "MR_data")) stop("Argument x= must be an object returned from recapr_prep()")
+  
+  # must be two event names and two column names
+  if(length(event_names) != 2) stop("Must supply two event names")
+  if(length(column_names) != 2) stop("Must supply two column names")
+  
   # - event names must exist
+  if(!(all(event_names %in% names(x$input_data)))) {
+    stop("Supplied event names not found in data event names")
+  }
+  
   # - column names must exist in both events
+  if(!(column_names[1] %in% names(x$input_data[[event_names[1]]]))) {
+    stop(paste("Column name not found in", event_names[1], "data"))
+  }
+  if(!(column_names[2] %in% names(x$input_data[[event_names[2]]]))) {
+    stop(paste("Column name not found in", event_names[2], "data"))
+  }
+  
   # - columns must be numeric in both events
-  # - breaks must be numeric 
+  if(!is.numeric(x$input_data[[event_names[1]]][[column_names[1]]]) | 
+     !is.numeric(x$input_data[[event_names[2]]][[column_names[2]]])) {
+    stop("Non-numeric columns detected")
+  }
+  
+  # - breaks must be numeric if they are not null
+  if(!is.null(breaks) & !is.numeric(breaks)) stop("Argument breaks= must be numeric")
   
   # create a copy to modify
   x1 <- x
@@ -519,17 +592,18 @@ Event2 <- read_csv("FDS_2024/flat_data/Event2.csv", skip = 1) %>%
   mutate(`Tag Number` = as.character(`Tag Number`))
 
 
-aa <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2, recap_codes="TL")
 
+aa <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2, recap_codes="TL")
+# aa <- recapr_prep(ID="Tag Number", event=NULL, recap_codes="TL", Event1, Event2)
 
 
 aa1 <- correct_growth(x=aa, 
-               event_keep="event1", 
-               event_adjust="event2", 
-               column_keep="Fork Length (mm)", 
-               column_adjust="Fork Length (mm)",
-               ID_keep="Tag Number",
-               ID_adjust="Tag Number")
+                      event_keep="event1", 
+                      event_adjust="event2", 
+                      column_keep="Fork Length (mm)", 
+                      column_adjust="Fork Length (mm)",
+                      ID_keep="Tag Number",
+                      ID_adjust="Tag Number")
 
 lm1 <- lm(aa$recaps$matched$`Fork Length (mm)_event1` ~ aa$recaps$matched$`Fork Length (mm)_event2`)
 
@@ -593,6 +667,51 @@ plot(aa3$recaps$unmatched$event2$`Fork Length (mm)_adjusted` ~ aa3$recaps$unmatc
 plot(aa3$recaps$all$event1$`Fork Length (mm)` ~ aa3$recaps$all$event1$`Fork Length (mm)_strat`)
 plot(aa3$recaps$all$event2$`Fork Length (mm)_adjusted` ~ aa3$recaps$all$event2$`Fork Length (mm)_adjusted_strat`)
 
+
+
+
+Event2na <- Event2
+Event2na$`Fork Length (mm)`[Event2na$`Tag Number` == 770] <- NA
+
+aana <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2na, recap_codes="TL")
+all.equal(aa, aana)
+
+aa1na <- correct_growth(x=aana, 
+                        event_keep="event1", 
+                        event_adjust="event2", 
+                        column_keep="Fork Length (mm)", 
+                        column_adjust="Fork Length (mm)",
+                        ID_keep="Tag Number",
+                        ID_adjust="Tag Number")
+all.equal(aa1, aa1na)
+
+
+## should do these without growth correcting ##
+
+aa2na <- truncate(x = aana,
+                  event_names = c("event1", "event2"),
+                  column_names = c("Fork Length (mm)", "Fork Length (mm)"),
+                  min = 345, max = 400)
+aa2b <- truncate(x = aa,
+                  event_names = c("event1", "event2"),
+                  column_names = c("Fork Length (mm)", "Fork Length (mm)"),
+                  min = 345, max = 400)
+all.equal(aa2b, aa2na)
+dim(aa2na$input_data$event1)
+dim(aa2b$input_data$event1)
+dim(aa2na$input_data$event2)
+dim(aa2b$input_data$event2)
+
+aa3na <- stratify(x = aa1na,
+                  event_names = c("event1", "event2"),
+                  column_names = c("Fork Length (mm)", "Fork Length (mm)_adjusted"),#
+                  breaks = c(200, 345, 400, 1000))
+all.equal(aa3, aa3na)
+
+
+
+
+
 # could theoretically
 # - automate ks tests
 # - automate chisq tests -> make inputs for recapr::consistencytest
@@ -601,12 +720,13 @@ plot(aa3$recaps$all$event2$`Fork Length (mm)_adjusted` ~ aa3$recaps$all$event2$`
 # - tabulate stratificationses
 
 # edge cases i can think of
-# - will $matched ever be constructed of things with different lengths?
+# DONE - will $matched ever be constructed of things with different lengths? NO
 # - what happens when there are NA values in (length)
 #   * truncate
 #   * stratify
 #   * correct_growth
 # - (maybe change adjusted to corrected, or else correct_growth to adjust_growth or growth_correction)
-# - could there be NA in ID column?
-# - what happens when data is not named in recapr_prep?
-# - what happens when min and max are left null?
+# DONE - could there be NA in ID column? NO
+# DONE - what happens when data is not named in recapr_prep? MAKES NEW NAMES
+# DONE - what happens when min and max are left null?  NOTHING
+
