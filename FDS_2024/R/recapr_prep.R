@@ -139,7 +139,9 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
   t2 <- table(recaps2[[ID[length(ID)]]], useNA="no")
   
   # separate matched and non-matched subsets of recaps1 and recaps2
-  recaps_vec_matched <- base::intersect(names(t1[t1==1]), names(t2[t2==1]))
+  recaps_vec_matched <- base::intersect(names(t1[t1==1]), names(t2[t2==1]))   # need to exclude recap_codes
+  recaps_vec_matched <- recaps_vec_matched[!(recaps_vec_matched %in% recap_codes)]
+  
   recaps1_matched <- recaps1[recaps1[[ID[1]]] %in% recaps_vec_matched, ]
   recaps2_matched <- recaps2[recaps2[[ID[length(ID)]]] %in% recaps_vec_matched, ]
   recaps1_unmatched <- recaps1[!recaps1[[ID[1]]] %in% recaps_vec_matched, ]
@@ -163,6 +165,34 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
   # recaps_matched <- cbind(recaps1_matched, recaps2_matched)
   recaps_matched <- interleave(recaps1_matched, recaps2_matched, thenames=the_events)
   
+  ### trying appending unmatched to matched   ------- see if i can make this NOT have to be a data.frame
+  recaps1_unmatched_rbind1 <- recaps1_unmatched
+  names(recaps1_unmatched_rbind1) <- paste(names(recaps1_unmatched), the_events[1], sep="_")
+  recaps1_unmatched_rbind <- data.frame(row.names=rownames(recaps1_unmatched_rbind1))
+  for(j in 1:ncol(recaps_matched)) {
+    if(names(recaps_matched)[j] %in% names(recaps1_unmatched_rbind1)) {
+      addthis <- recaps1_unmatched_rbind1[[names(recaps_matched)[j]]]
+    } else {
+      addthis <- NA
+    }
+    recaps1_unmatched_rbind[[names(recaps_matched)[j]]] <- addthis
+  }
+
+  recaps2_unmatched_rbind2 <- recaps2_unmatched
+  names(recaps2_unmatched_rbind2) <- paste(names(recaps2_unmatched), the_events[2], sep="_")
+  recaps2_unmatched_rbind <- data.frame(row.names=rownames(recaps2_unmatched_rbind2))
+  for(j in 1:ncol(recaps_matched)) {
+    if(names(recaps_matched)[j] %in% names(recaps2_unmatched_rbind2)) {
+      addthis <- recaps2_unmatched_rbind2[[names(recaps_matched)[j]]]
+    } else {
+      addthis <- NA
+    }
+    recaps2_unmatched_rbind[[names(recaps_matched)[j]]] <- addthis
+  }
+  
+  recaps_all <- rbind(recaps_matched, recaps1_unmatched_rbind, recaps2_unmatched_rbind)
+  ###
+  
   # # initialize sub-list
   out$recaps <- list()
   
@@ -170,30 +200,11 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
   out$recaps$unmatched <- list(recaps1_unmatched, recaps2_unmatched)
   names(out$recaps$unmatched) <- the_events
   
-  out$recaps$all <- list(recaps1, recaps2)
-  names(out$recaps$all) <- the_events
+  ## previous version
+  # out$recaps$all <- list(recaps1, recaps2)
+  # names(out$recaps$all) <- the_events
   
-  # if((length(recaps_vec)==nrow(recaps1)) & (length(recaps_vec)==nrow(recaps2))) {
-  #   # interleave columns
-  #   recaps <- cbind(recaps1, recaps2)
-  #   out$recaps <- recaps[, order(names(recaps))]
-  # } else {
-  #   # print(recaps1[[ID[1]]])
-  #   # print(t2)
-  #   problems1 <- t1[t1>1]
-  #   problems2 <- t2[t2>1]
-  #   if(length(problems1) > 0) {
-  #     warning(c("Multiple records exist for RECAPTURED individuals in event ", names(out)[1], ": ",
-  #               paste0(names(problems1), c(rep(", ", length(problems1)-1), ""))))
-  #   }
-  #   if(length(problems2) > 0) {
-  #     warning(c("Multiple records exist for RECAPTURED individuals in event ", names(out)[2], ": ",
-  #               paste0(names(problems2), c(rep(", ", length(problems2)-1), ""))))
-  #   }
-  # 
-  #   out$recaps <- list(recaps1, recaps2)
-  #   names(out$recaps) <- names(out)[1:2]
-  # }
+  out$recaps$all <- recaps_all
   
   class(out) <- "MR_data"
   return(out)
@@ -312,7 +323,8 @@ interleave <- function(x1, x2, thenames=NULL) {
 correct_growth <- function(x, 
                            event_keep, event_adjust,
                            column_keep, column_adjust,
-                           ID_keep, ID_adjust=ID_keep) {
+                           ID_keep, ID_adjust=ID_keep,
+                           impute = TRUE) {
   # insert error checking
   # - needs to be an object returned by recapr_prep
   if(!inherits(x, "MR_data")) stop("Argument x= must be an object returned from recapr_prep()")
@@ -353,12 +365,14 @@ correct_growth <- function(x,
   ypred <- predict(lm1, newdata = data.frame(xreg=x$input_data[[event_adjust]][[column_adjust]]))
   
   # fill in individuals as available
-  ytag <- x$input_data[[event_adjust]][[ID_adjust]]
-  keeptag <- x$recaps$matched[[paste(ID_keep, event_keep, sep="_")]]
-  for(iy in seq_along(ytag)) {
-    if(!is.na(ytag[iy])) {
-      if(ytag[iy] %in% keeptag) {
-        ypred[iy] <- yreg[keeptag==ytag[iy]]
+  if(impute) {
+    ytag <- x$input_data[[event_adjust]][[ID_adjust]]
+    keeptag <- x$recaps$matched[[paste(ID_keep, event_keep, sep="_")]]
+    for(iy in seq_along(ytag)) {
+      if(!is.na(ytag[iy])) {
+        if(ytag[iy] %in% keeptag) {
+          ypred[iy] <- yreg[keeptag==ytag[iy]]
+        }
       }
     }
   }
@@ -368,8 +382,12 @@ correct_growth <- function(x,
   x1$input_data[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]] <- unname(ypred)
   
   # change it in matched
-  # x1$recaps$matched[[paste(column_adjust, event_adjust, "adjusted", sep="_")]] <- yreg
-  x1$recaps$matched[[paste(column_adjust, "adjusted", event_adjust, sep="_")]] <- yreg    # reordered
+  if(impute) {
+    # x1$recaps$matched[[paste(column_adjust, event_adjust, "adjusted", sep="_")]] <- yreg
+    x1$recaps$matched[[paste(column_adjust, "adjusted", event_adjust, sep="_")]] <- yreg    # reordered
+  } else {
+    x1$recaps$matched[[paste(column_adjust, "adjusted", event_adjust, sep="_")]] <- unname(predict(lm1))
+  }
   
   # need to change it in x1$recaps$unmatched[[event_adjust]][[column_adjust]]
   x1$recaps$unmatched[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]] <-
@@ -378,13 +396,15 @@ correct_growth <- function(x,
   # need to change it in x1$recaps$all[[event_adjust]][[column_adjust]]
   x1$recaps$all[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]] <-
     unname(predict(lm1, newdata = data.frame(xreg=x1$recaps$all[[event_adjust]][[column_adjust]])))
-  ytag <- x1$recaps$all[[event_adjust]][[ID_adjust]]
-  keeptag <- x$recaps$matched[[paste(ID_keep, event_keep, sep="_")]]
-  for(iy in seq_along(ytag)) {
-    if(!is.na(ytag[iy])) {
-      if(ytag[iy] %in% keeptag) {
-        x1$recaps$all[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]][iy] <- 
-          yreg[keeptag==ytag[iy]]  
+  if(impute) {
+    ytag <- x1$recaps$all[[event_adjust]][[ID_adjust]]
+    keeptag <- x$recaps$matched[[paste(ID_keep, event_keep, sep="_")]]
+    for(iy in seq_along(ytag)) {
+      if(!is.na(ytag[iy])) {
+        if(ytag[iy] %in% keeptag) {
+          x1$recaps$all[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]][iy] <- 
+            yreg[keeptag==ytag[iy]]  
+        }
       }
     }
   }
@@ -598,6 +618,7 @@ aa <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2, recap_codes="TL
 
 
 aa1 <- correct_growth(x=aa, 
+                      # impute=FALSE, 
                       event_keep="event1", 
                       event_adjust="event2", 
                       column_keep="Fork Length (mm)", 
@@ -701,32 +722,93 @@ dim(aa2na$input_data$event1)
 dim(aa2b$input_data$event1)
 dim(aa2na$input_data$event2)
 dim(aa2b$input_data$event2)
+dim(aa2na$recaps$matched)
+dim(aa2b$recaps$matched)
+dim(aa2na$recaps$unmatched$event1)
+dim(aa2b$recaps$unmatched$event1)
+dim(aa2na$recaps$all$event1)
+dim(aa2b$recaps$all$event1)
+dim(aa2na$recaps$all$event2)
+dim(aa2b$recaps$all$event2)
 
-aa3na <- stratify(x = aa1na,
+
+
+aa3na <- stratify(x = aana,
                   event_names = c("event1", "event2"),
-                  column_names = c("Fork Length (mm)", "Fork Length (mm)_adjusted"),#
+                  column_names = c("Fork Length (mm)", "Fork Length (mm)"),#
                   breaks = c(200, 345, 400, 1000))
-all.equal(aa3, aa3na)
+aa3b <- stratify(x = aa,
+                  event_names = c("event1", "event2"),
+                  column_names = c("Fork Length (mm)", "Fork Length (mm)"),#
+                  breaks = c(200, 345, 400, 1000))
+all.equal(aa3b, aa3na)
+dim(aa3na$input_data$event1)
+dim(aa3b$input_data$event1)
+dim(aa3na$input_data$event2)
+dim(aa3b$input_data$event2)
+dim(aa3na$recaps$matched)
+dim(aa3b$recaps$matched)
+dim(aa3na$recaps$unmatched$event1)
+dim(aa3b$recaps$unmatched$event1)
+dim(aa3na$recaps$all$event1)
+dim(aa3b$recaps$all$event1)
+dim(aa3na$recaps$all$event2)
+dim(aa3b$recaps$all$event2)
+
+table(aa3na$input_data$event1$`Fork Length (mm)_strat`, useNA = "always")
+table(aa3b$input_data$event1$`Fork Length (mm)_strat`, useNA = "always")
+table(aa3na$input_data$event2$`Fork Length (mm)_strat`, useNA = "always")
+table(aa3b$input_data$event2$`Fork Length (mm)_strat`, useNA = "always")
+table(aa3na$recaps$matched$`Fork Length (mm)_strat_event1`, useNA = "always")
+table(aa3b$recaps$matched$`Fork Length (mm)_strat_event1`, useNA = "always")
+table(aa3na$recaps$matched$`Fork Length (mm)_strat_event2`, useNA = "always")
+table(aa3b$recaps$matched$`Fork Length (mm)_strat_event2`, useNA = "always")
+table(aa3na$recaps$unmatched$event1$`Fork Length (mm)_strat`, useNA = "always")
+table(aa3b$recaps$unmatched$event1$`Fork Length (mm)_strat`, useNA = "always")
+table(aa3na$recaps$unmatched$event2$`Fork Length (mm)_strat`, useNA = "always")
+table(aa3b$recaps$unmatched$event2$`Fork Length (mm)_strat`, useNA = "always")
+table(aa3na$recaps$all$event1$`Fork Length (mm)_strat`, useNA = "always")
+table(aa3b$recaps$all$event1$`Fork Length (mm)_strat`, useNA = "always")
+table(aa3na$recaps$all$event2$`Fork Length (mm)_strat`, useNA = "always")
+table(aa3b$recaps$all$event2$`Fork Length (mm)_strat`, useNA = "always")
 
 
-
+Event1TL <- Event1
+Event1TL$`Tag Number`[1] <- "TL"
+aaTL <- recapr_prep(ID="Tag Number", event1=Event1TL, event2=Event2, recap_codes="TL")
+str(aaTL$recaps)
+aaTL$recaps$matched$`Tag Number_event1`   # seems to not include TL??
+aaTL$recaps$unmatched$event1$`Tag Number`
+aaTL$recaps$all$event1$`Tag Number`
 
 
 # could theoretically
 # - automate ks tests
 # - automate chisq tests -> make inputs for recapr::consistencytest
-# - df of all unique fish
-# - apply stratification schemes
+# - df of all unique fish ***************************************
+#   * or make master length column somehow
+#   * REWORK $recaps$all to semi-interleaved **************** !!!!!!!!!!
+#     - and of course change truncate/stratify/correct_growth
 # - tabulate stratificationses
 
 # edge cases i can think of
 # DONE - will $matched ever be constructed of things with different lengths? NO
-# - what happens when there are NA values in (length)
-#   * truncate
-#   * stratify
-#   * correct_growth
+# DONE - what happens when there are NA values in (length)  ALL FINE
+#   * truncate  REMOVES NA
+#   * stratify  MAKES NA
+#   * correct_growth MAKES NA
 # - (maybe change adjusted to corrected, or else correct_growth to adjust_growth or growth_correction)
 # DONE - could there be NA in ID column? NO
 # DONE - what happens when data is not named in recapr_prep? MAKES NEW NAMES
 # DONE - what happens when min and max are left null?  NOTHING
+# - what happens when elements of recap_codes are repeated in both events?
 
+# idea: add length and stratification column names for each event to MR_data object
+# print or summary method: tabulate counts by stratum?? range of numeric values? pop estimates??
+# DONE in correct_growth: add a logical argument for whether to directly impute matched 
+
+# problem: how to make lengths/stratum/counts consistent for $recaps
+
+#### where it currently stands: recapr_prep object recaps_all is semi-interleaved as hoped.
+####                            still need to decide if this is what I want to keep
+####                            and if so, update truncate/stratify/correct_growth, plus all test scripts
