@@ -428,9 +428,8 @@ correct_growth <- function(x,
 
 
 
-# big function to truncate objects according to a min and max value
-truncate <- function(x, event_names, column_names, min=NULL, max=NULL) {
-  
+# pulling out the common pieces of error checking
+recapr_errorcheck <- function(x, event_names, column_names) {
   # error checking
   # - needs to be an object returned by recapr_prep
   if(!inherits(x, "MR_data")) stop("Argument x= must be an object returned from recapr_prep()")
@@ -474,6 +473,61 @@ truncate <- function(x, event_names, column_names, min=NULL, max=NULL) {
   if(!(column_names[2] %in% names(x$input_data[[event_names[2]]]))) {
     stop(paste("Column name not found in", event_names[2], "data"))
   }
+  
+  return(list(event_names=event_names, column_names=column_names))
+}
+
+
+
+# big function to truncate objects according to a min and max value
+truncate <- function(x, event_names, column_names, min=NULL, max=NULL) {
+  
+  # error checking
+  # - needs to be an object returned by recapr_prep
+  if(!inherits(x, "MR_data")) stop("Argument x= must be an object returned from recapr_prep()")
+
+  if(length(event_names) > 2) stop("No more than two event names can be used")
+  if(length(column_names) > 2) stop("No more than two column names can be used")
+
+  ## only require event names when multiple column names are used
+  ## allow length-1 column name
+  if(length(column_names) == 2) {
+    if(length(event_names) == 0) {
+      if(column_names[1] != column_names[2]) {
+        stop("Must supply two event names if two column names are used")
+      } else {
+        event_names <- names(x$input_data)
+      }
+    }
+    if(length(event_names) == 1) stop("Must supply two event names if two column names are used")
+  }
+  if(length(column_names) == 1) {
+    column_names <- rep(column_names, 2)
+    if(is.null(event_names)) {
+      event_names <- names(x$input_data)
+    }
+    if(length(event_names) == 1) stop("Invalid input to event_names")
+  }
+
+  # # must be two event names and two column names
+  # if(length(event_names) != 2) stop("Must supply two event names")
+  # if(length(column_names) != 2) stop("Must supply two column names")
+
+  # - event names must exist
+  if(!(all(event_names %in% names(x$input_data)))) {
+    stop("Supplied event names not found in data event names")
+  }
+
+  # - column names must exist in both events
+  if(!(column_names[1] %in% names(x$input_data[[event_names[1]]]))) {
+    stop(paste("Column name not found in", event_names[1], "data"))
+  }
+  if(!(column_names[2] %in% names(x$input_data[[event_names[2]]]))) {
+    stop(paste("Column name not found in", event_names[2], "data"))
+  }
+  # ec <- recapr_errorcheck(x=x, event_names=event_names, column_names=column_names)
+  # event_names <- ec$event_names
+  # column_names <- ec$column_names
   
   # - columns must be numeric in both events
   if(!is.numeric(x$input_data[[event_names[1]]][[column_names[1]]]) | 
@@ -564,10 +618,10 @@ stratify <- function(x, event_names=NULL, column_names, breaks, right=FALSE, dig
   # error checking
   # - needs to be an object returned by recapr_prep
   if(!inherits(x, "MR_data")) stop("Argument x= must be an object returned from recapr_prep()")
-  
+
   if(length(event_names) > 2) stop("No more than two event names can be used")
   if(length(column_names) > 2) stop("No more than two column names can be used")
-  
+
   ## only require event names when multiple column names are used
   ## allow length-1 column name
   if(length(column_names) == 2) {
@@ -579,7 +633,7 @@ stratify <- function(x, event_names=NULL, column_names, breaks, right=FALSE, dig
       }
     }
     if(length(event_names) == 1) stop("Must supply two event names if two column names are used")
-  } 
+  }
   if(length(column_names) == 1) {
     column_names <- rep(column_names, 2)
     if(is.null(event_names)) {
@@ -587,16 +641,16 @@ stratify <- function(x, event_names=NULL, column_names, breaks, right=FALSE, dig
     }
     if(length(event_names) == 1) stop("Invalid input to event_names")
   }
-  
+
   # # must be two event names and two column names
   # if(length(event_names) != 2) stop("Must supply two event names")
   # if(length(column_names) != 2) stop("Must supply two column names")
-  
+
   # - event names must exist
   if(!(all(event_names %in% names(x$input_data)))) {
     stop("Supplied event names not found in data event names")
   }
-  
+
   # - column names must exist in both events
   if(!(column_names[1] %in% names(x$input_data[[event_names[1]]]))) {
     stop(paste("Column name not found in", event_names[1], "data"))
@@ -604,6 +658,9 @@ stratify <- function(x, event_names=NULL, column_names, breaks, right=FALSE, dig
   if(!(column_names[2] %in% names(x$input_data[[event_names[2]]]))) {
     stop(paste("Column name not found in", event_names[2], "data"))
   }
+  # ec <- recapr_errorcheck(x=x, event_names=event_names, column_names=column_names)
+  # event_names <- ec$event_names
+  # column_names <- ec$column_names
   
   # - columns must be numeric in both events
   if(!is.numeric(x$input_data[[event_names[1]]][[column_names[1]]]) | 
@@ -667,6 +724,96 @@ stratify <- function(x, event_names=NULL, column_names, breaks, right=FALSE, dig
   }
   
   return(x1)
+}  
+
+
+
+tabulate_samples <- function(x,
+                             column_names=NULL,
+                             event_names=NULL) {
+  # error checking
+  # - needs to be an object returned by recapr_prep
+  if(!inherits(x, "MR_data")) stop("Argument x= must be an object returned from recapr_prep()")
+  
+  if(length(event_names) > 2) stop("No more than two event names can be used")
+  if(length(column_names) > 2) stop("No more than two column names can be used")
+  
+  ## only require event names when multiple column names are used
+  ## allow length-1 column name
+  if(length(column_names) == 2) {
+    if(length(event_names) == 0) {
+      if(column_names[1] != column_names[2]) {
+        stop("Must supply two event names if two column names are used")
+      } else {
+        event_names <- names(x$input_data)
+      }
+    }
+    if(length(event_names) == 1) stop("Must supply two event names if two column names are used")
+  }
+  if(length(column_names) == 1) {
+    column_names <- rep(column_names, 2)
+    if(is.null(event_names)) {
+      event_names <- names(x$input_data)
+    }
+    if(length(event_names) == 1) stop("Invalid input to event_names")
+  }
+  if(is.null(column_names) & is.null(event_names)) {
+    event_names <- names(x$input_data)
+  }
+  
+  # # must be two event names and two column names
+  # if(length(event_names) != 2) stop("Must supply two event names")
+  # if(length(column_names) != 2) stop("Must supply two column names")
+  
+  # - event names must exist
+  if(!(all(event_names %in% names(x$input_data)))) {
+    stop("Supplied event names not found in data event names")
+  }
+  
+  if(!is.null(column_names)) {  # this condition does not exist in other funcs
+    # - column names must exist in both events
+    if(!(column_names[1] %in% names(x$input_data[[event_names[1]]]))) {
+      stop(paste("Column name not found in", event_names[1], "data"))
+    }
+    if(!(column_names[2] %in% names(x$input_data[[event_names[2]]]))) {
+      stop(paste("Column name not found in", event_names[2], "data"))
+    }
+  }
+  # ec <- recapr_errorcheck(x=x, event_names=event_names, column_names=column_names)
+  # event_names <- ec$event_names
+  # column_names <- ec$column_names
+  
+  ### START TABULATING!
+  out <- list(captures=list(), recaps=list())
+  if(!is.null(column_names)) {  # if there are strata
+    out$captures[[event_names[1]]] <- table(x$input_data[[event_names[1]]][[column_names[1]]], useNA = "ifany")
+    out$captures[[event_names[2]]] <- table(x$input_data[[event_names[2]]][[column_names[2]]], useNA = "ifany")
+    out$recaps$matched <- table(factor(x$recaps$matched[[paste(column_names[1], event_names[1], sep="_")]],
+                                       levels = names(out$captures[[event_names[1]]])),
+                                factor(x$recaps$matched[[paste(column_names[2], event_names[2], sep="_")]],
+                                       levels = names(out$captures[[event_names[2]]])),
+                                useNA = "ifany", dnn=paste(column_names, event_names, sep="_"))
+    out$recaps$unmatched <- list()
+    out$recaps$unmatched[[event_names[1]]] <- table(factor(x$recaps$unmatched[[event_names[1]]][[column_names[1]]],
+                                                           levels = names(out$captures[[event_names[1]]])), useNA="ifany")
+    out$recaps$unmatched[[event_names[2]]] <- table(factor(x$recaps$unmatched[[event_names[2]]][[column_names[2]]],
+                                                           levels = names(out$captures[[event_names[2]]])), useNA="ifany")
+    out$recaps$all <- table(factor(x$recaps$all[[paste(column_names[1], event_names[1], sep="_")]],
+                                   levels = names(out$captures[[event_names[1]]])),
+                            factor(x$recaps$all[[paste(column_names[2], event_names[2], sep="_")]],
+                                   levels = names(out$captures[[event_names[2]]])),
+                            useNA = "ifany", dnn=paste(column_names, event_names, sep="_"))
+  } else { # if there are no strata
+    out$captures[[event_names[1]]] <- nrow(x$input_data[[event_names[1]]])
+    out$captures[[event_names[2]]] <- nrow(x$input_data[[event_names[2]]])
+    out$recaps$matched <- nrow(x$recaps$matched)
+    out$recaps$unmatched <- list()
+    out$recaps$unmatched[[event_names[1]]] <- nrow(x$recaps$unmatched[[event_names[1]]])
+    out$recaps$unmatched[[event_names[2]]] <- nrow(x$recaps$unmatched[[event_names[2]]])
+    out$recaps$all <- nrow(x$recaps$all)
+  }
+  
+  return(out)
 }
 
 
@@ -923,7 +1070,7 @@ aaTL$recaps$all$`Tag Number_event1`
 # cap2$tag[cap2_recaps] <- cap1$tag[cap1_recaps]
 # cap2$FL[cap2_recaps] <- cap1$FL[cap1_recaps] + round(rnorm(m2, mean=10, sd=4))
 # 
-# cap1$tag[sample(n1, 1)] <- NA
+# cap1$tag[sample(n1, 1)] <- "TL"
 # cap1$FL[sample(n1, 1)] <- NA
 # cap1$area[sample(n1, 1)] <- NA
 # 
@@ -933,7 +1080,7 @@ aaTL$recaps$all$`Tag Number_event1`
 
 
 cap1 <-
-  structure(list(tag = c(1L, NA, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 
+  structure(list(tag = c(1L, "TL", 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 
                          11L, 12L, 13L, 14L, 15L, 16L, 17L, 18L, 19L, 20L, 21L, 22L, 23L, 
                          24L, 25L, 26L, 27L, 28L, 29L, 30L), 
                  FL = c(320, 463, 397, 447, 
@@ -957,6 +1104,7 @@ cap2 <-
 
 
 x <- recapr_prep(ID="tag", recap_codes = "TL", cap1=cap1, cap2=cap2)
+x
 truncate(x=x, event_names=c("cap1","cap2"), column_names = c("FL","FL"), min=400, max=450)
 stratify(x=x, event_names=c("cap1","cap2"), column_names = c("FL","FL"), breaks=c(300, 400, 500))
 correct_growth(x=x, event_keep="cap1", event_adjust="cap2", column_keep="FL", column_adjust="FL", ID_keep="tag")#, impute=F)
@@ -970,4 +1118,6 @@ stratify(x=x, column_names = c("FL"), breaks=c(300, 400, 550), event_names=c("ca
 stratify(x=x, column_names = c("FL", "FL", "FL"), breaks=c(300, 400, 550))
 stratify(x=x, breaks=c(300, 400, 550))
 stratify(x=x, column_names = c("FL", "FL1"), breaks=c(300, 400, 550)) 
-stratify(x=x, column_names = c("FL", "FL1"), breaks=c(300, 400, 550), event_names=c("cap1","cap2"))   
+stratify(x=x, column_names = c("FL", "FL1"), breaks=c(300, 400, 550), event_names=c("cap1","cap2")) 
+tabulate_samples(x=x, column_names = "area")
+tabulate_samples(x)
