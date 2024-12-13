@@ -52,7 +52,7 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
   # check to make sure all the data objects are data.frame or similar
   if(all(sapply(dots, inherits, c("data.frame", "matrix")))) {
     for(idots in 1:length(dots)) {
-      if(!inherits(dots[[idots]], "data.frame")) {
+      if(!inherits(dots[[idots]], "data.frame")) {  # turning all matrices into data.frames
         dots[[idots]] <- as.data.frame(dots[[idots]])
       }
     }
@@ -197,25 +197,23 @@ recapr_prep <- function(ID, event=NULL, recap_codes=NULL, ...) {
   out$recaps <- list()
   
   out$recaps$matched <- recaps_matched # [, order(names(recaps_matched))]
-  out$recaps$unmatched <- list(recaps1_unmatched, recaps2_unmatched)
-  names(out$recaps$unmatched) <- the_events
+  
+  # only creating unmatched$ sub-objects and $all objects if corresponding records exist
+  whichones <- c(nrow(recaps1_unmatched) > 0, nrow(recaps2_unmatched) > 0)
+  if(sum(whichones) > 0) {
+    out$recaps$unmatched <- list(recaps1_unmatched, recaps2_unmatched)[whichones]   #####################
+    names(out$recaps$unmatched) <- the_events[whichones]
+    out$recaps$all <- recaps_all
+  }
   
   ## previous version
   # out$recaps$all <- list(recaps1, recaps2)
   # names(out$recaps$all) <- the_events
   
-  out$recaps$all <- recaps_all
   
   class(out) <- "MR_data"
   return(out)
 }
-
-# propmatch <- function(x1,x2) {
-#   maxn <- max(nchar(x1), nchar(x2))
-#   minn <- min(nchar(x1), nchar(x2))
-#   return(sum(unlist(strsplit(substr(x1, 1, minn), split="")) ==
-#         unlist(strsplit(substr(x2, 1, minn), split="")))/maxn)
-# }
 
 
 
@@ -265,57 +263,10 @@ interleave <- function(x1, x2, thenames=NULL) {
   
   return(out)
 }
-# interleave(x1=recaps1_matched[,1:2], x2=recaps2_matched[,2:3])
-# interleave(x1=as.data.frame(recaps1_matched)[,1:2], 
-           # x2=as.data.frame(recaps2_matched)[3])
-
-
-# simplify recap warning - maybe IDs aren't needed
-# need more test cases!!
-# - length(ID)==2
-# - duplicates in recaps
-# - TRY THINGS THAT SHOULD THROW AN ERROR
-# make out$recaps$all an rbindish thing (single appended data table) --- EACH ROW SHOULD BE A UNIQUE FISH
-# - make new sub-function append() to go with interleave() ???  -- NO
-
-# ! done ! make sure the name $recaps isn't problematic!! maybe add a $input_data
-# ! done ! add an error message when ... is empty! AND IF WE GIVE UP ON VECTOR INPUT
-# ! done ! make interleaving smarter - try to match the ordering for event 1 (!!!)
-# ! done ! - maybe make interleave() function
-# ! done ! coerce matrix input to data.frame
-# ! not going to ! handle vector input???
 
 # maybe rename as recapr_data, and write another function recapr_tabulate??
 # - would need columns for stratum - ANY OTHERS??
 
-
-# aa <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2, recap_codes="TL")
-# str(aa)
-# 
-# bothevents <- rbind(select(Event1, c("Event", "Tag Number", "Fork Length (mm)")),
-#                     select(Event2, c("Event", "Tag Number", "Fork Length (mm)"))) #%>% as.data.frame
-# aa <- recapr_prep(ID="Tag Number", data=bothevents, event="Event", recap_codes="TL")
-# str(aa)
-# 
-# aa <- recapr_prep(ID="Tag Number", data=(as.matrix(bothevents)), event="Event", recap_codes="TL")
-# str(aa) 
-# 
-# 
-# bothevents1 <- bothevents
-# bothevents1$`Tag Number`[1] <- 770
-# aa <- recapr_prep(ID="Tag Number", data=(as.matrix(bothevents1)), event="Event", recap_codes="TL")
-# str(aa)
-# 
-# 
-# Event11 <- Event1
-# names(Event11)[7] <- "TagNumber"
-# aa <- recapr_prep(ID=c("TagNumber","Tag Number"), event1=Event1, event2=Event2, recap_codes="TL")
-# str(aa)
-# 
-# bothevents1 <- bothevents
-# bothevents1$Event <- 3
-# aa <- recapr_prep(ID=c("Tag Number","Tag Number","steve"),event1=Event1, event2=Event2)   # needed data=bothevents
-# str(aa)
 
 
 
@@ -390,9 +341,13 @@ correct_growth <- function(x,
   }
   
   # need to change it in x1$recaps$unmatched[[event_adjust]][[column_adjust]]
-  x1$recaps$unmatched[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]] <-
-    unname(predict(lm1, newdata = data.frame(xreg=x1$recaps$unmatched[[event_adjust]][[column_adjust]])))
+  # modifying unmatched if it exists
+  if(!is.null(x1$recaps$unmatched[[event_adjust]])) {  
+    x1$recaps$unmatched[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]] <-
+      unname(predict(lm1, newdata = data.frame(xreg=x1$recaps$unmatched[[event_adjust]][[column_adjust]])))
+  }
   
+  #### this block corresponds to the previous structure of $recaps$all => can probably just delete
   # need to change it in x1$recaps$all[[event_adjust]][[column_adjust]]
   # x1$recaps$all[[event_adjust]][[paste(column_adjust, "adjusted", sep="_")]] <-
   #   unname(predict(lm1, newdata = data.frame(xreg=x1$recaps$all[[event_adjust]][[column_adjust]])))
@@ -408,16 +363,18 @@ correct_growth <- function(x,
   #     }
   #   }
   # }
-  x1$recaps$all[[paste(column_adjust, "adjusted", event_adjust, sep="_")]] <-
-    unname(predict(lm1, newdata = data.frame(xreg=x1$recaps$all[[paste(column_adjust, event_adjust, sep="_")]])))
-  if(impute) {
-    ytag <- x1$recaps$all[[paste(ID_adjust, event_adjust, sep="_")]]
-    keeptag <- x$recaps$matched[[paste(ID_keep, event_keep, sep="_")]]
-    for(iy in seq_along(ytag)) {
-      if(!is.na(ytag[iy])) {
-        if(ytag[iy] %in% keeptag) {
-          x1$recaps$all[[paste(column_adjust, "adjusted", event_adjust, sep="_")]][iy] <- 
-            yreg[keeptag==ytag[iy]]  
+  if(!is.null(x1$recaps$all)) {  # modify recaps$all if it exists
+    x1$recaps$all[[paste(column_adjust, "adjusted", event_adjust, sep="_")]] <-
+      unname(predict(lm1, newdata = data.frame(xreg=x1$recaps$all[[paste(column_adjust, event_adjust, sep="_")]])))
+    if(impute) {
+      ytag <- x1$recaps$all[[paste(ID_adjust, event_adjust, sep="_")]]
+      keeptag <- x$recaps$matched[[paste(ID_keep, event_keep, sep="_")]]
+      for(iy in seq_along(ytag)) {
+        if(!is.na(ytag[iy])) {
+          if(ytag[iy] %in% keeptag) {
+            x1$recaps$all[[paste(column_adjust, "adjusted", event_adjust, sep="_")]][iy] <- 
+              yreg[keeptag==ytag[iy]]  
+          }
         }
       }
     }
@@ -427,7 +384,7 @@ correct_growth <- function(x,
 }
 
 
-
+### This function might get discarded since the errors are a bit confusingly nested
 # pulling out the common pieces of error checking
 recapr_errorcheck <- function(x, event_names, column_names) {
   # error checking
@@ -477,7 +434,12 @@ recapr_errorcheck <- function(x, event_names, column_names) {
   return(list(event_names=event_names, column_names=column_names))
 }
 
-
+# x1 <- function(x) {
+#   a <- tryCatch(x2(x), error= function(e) stop(e))
+# }
+# x2 <- function(x) stop("this is an error")
+# a <- x1(1)
+# a
 
 # big function to truncate objects according to a min and max value
 truncate <- function(x, event_names, column_names, min=NULL, max=NULL) {
@@ -697,17 +659,21 @@ stratify <- function(x, event_names=NULL, column_names, breaks, right=FALSE, dig
       factor(cut(x1$input_data[[event_names[ii]]][[column_names[ii]]], 
                  breaks=breaks, right=right, dig.lab=dig.lab), levels=thelevels)
     
-    x1$recaps$unmatched[[event_names[ii]]][[paste(column_names[ii], "strat", sep="_")]] <- 
-      factor(cut(x1$recaps$unmatched[[event_names[ii]]][[column_names[ii]]], 
-                 breaks=breaks, right=right, dig.lab=dig.lab), levels=thelevels)
+    if(!is.null(x1$recaps$unmatched[[event_names[ii]]])) {  # only do it if it exists
+      x1$recaps$unmatched[[event_names[ii]]][[paste(column_names[ii], "strat", sep="_")]] <- 
+        factor(cut(x1$recaps$unmatched[[event_names[ii]]][[column_names[ii]]], 
+                   breaks=breaks, right=right, dig.lab=dig.lab), levels=thelevels)
+    }
     
     # x1$recaps$all[[event_names[ii]]][[paste(column_names[ii], "strat", sep="_")]] <- 
     #   factor(cut(x1$recaps$all[[event_names[ii]]][[column_names[ii]]], 
     #              breaks=breaks, right=right, dig.lab=dig.lab), levels=thelevels)
     
-    x1$recaps$all[[paste(column_names[ii], "strat", event_names[ii], sep="_")]] <- 
-      factor(cut(x1$recaps$all[[paste(column_names[ii], event_names[ii], sep="_")]], 
-                 breaks=breaks, right=right, dig.lab=dig.lab), levels=thelevels)
+    if(!is.null(x1$recaps$all)) { # only do it if it exists
+      x1$recaps$all[[paste(column_names[ii], "strat", event_names[ii], sep="_")]] <- 
+        factor(cut(x1$recaps$all[[paste(column_names[ii], event_names[ii], sep="_")]], 
+                   breaks=breaks, right=right, dig.lab=dig.lab), levels=thelevels)
+    }
     
     x1$recaps$matched[[paste(column_names[ii], "strat", event_names[ii], sep="_")]] <- 
       factor(cut(x1$recaps$matched[[paste(column_names[ii], event_names[ii], sep="_")]], 
@@ -730,7 +696,8 @@ stratify <- function(x, event_names=NULL, column_names, breaks, right=FALSE, dig
 
 tabulate_samples <- function(x,
                              column_names=NULL,
-                             event_names=NULL) {
+                             event_names=NULL,
+                             suppressNA=FALSE) {
   # error checking
   # - needs to be an object returned by recapr_prep
   if(!inherits(x, "MR_data")) stop("Argument x= must be an object returned from recapr_prep()")
@@ -785,32 +752,45 @@ tabulate_samples <- function(x,
   
   ### START TABULATING!
   out <- list(captures=list(), recaps=list())
+  useNA <- ifelse(suppressNA, "no", "ifany")
   if(!is.null(column_names)) {  # if there are strata
-    out$captures[[event_names[1]]] <- table(x$input_data[[event_names[1]]][[column_names[1]]], useNA = "ifany")
-    out$captures[[event_names[2]]] <- table(x$input_data[[event_names[2]]][[column_names[2]]], useNA = "ifany")
+    out$captures[[event_names[1]]] <- table(x$input_data[[event_names[1]]][[column_names[1]]], useNA = useNA)
+    out$captures[[event_names[2]]] <- table(x$input_data[[event_names[2]]][[column_names[2]]], useNA = useNA)
     out$recaps$matched <- table(factor(x$recaps$matched[[paste(column_names[1], event_names[1], sep="_")]],
                                        levels = names(out$captures[[event_names[1]]])),
                                 factor(x$recaps$matched[[paste(column_names[2], event_names[2], sep="_")]],
                                        levels = names(out$captures[[event_names[2]]])),
-                                useNA = "ifany", dnn=paste(column_names, event_names, sep="_"))
-    out$recaps$unmatched <- list()
-    out$recaps$unmatched[[event_names[1]]] <- table(factor(x$recaps$unmatched[[event_names[1]]][[column_names[1]]],
-                                                           levels = names(out$captures[[event_names[1]]])), useNA="ifany")
-    out$recaps$unmatched[[event_names[2]]] <- table(factor(x$recaps$unmatched[[event_names[2]]][[column_names[2]]],
-                                                           levels = names(out$captures[[event_names[2]]])), useNA="ifany")
-    out$recaps$all <- table(factor(x$recaps$all[[paste(column_names[1], event_names[1], sep="_")]],
-                                   levels = names(out$captures[[event_names[1]]])),
-                            factor(x$recaps$all[[paste(column_names[2], event_names[2], sep="_")]],
-                                   levels = names(out$captures[[event_names[2]]])),
-                            useNA = "ifany", dnn=paste(column_names, event_names, sep="_"))
+                                useNA = useNA, dnn=paste(column_names, event_names, sep="_"))
+    if(!is.null(x$recaps$unmatched)) out$recaps$unmatched <- list()
+    if(!is.null(x$recaps$unmatched[[event_names[1]]])) {
+      out$recaps$unmatched[[event_names[1]]] <- table(factor(x$recaps$unmatched[[event_names[1]]][[column_names[1]]],
+                                                             levels = names(out$captures[[event_names[1]]])), useNA="ifany")
+    }
+    if(!is.null(x$recaps$unmatched[[event_names[2]]])) {
+      out$recaps$unmatched[[event_names[2]]] <- table(factor(x$recaps$unmatched[[event_names[2]]][[column_names[2]]],
+                                                             levels = names(out$captures[[event_names[2]]])), useNA="ifany")
+    }
+    if(!is.null(x$recaps$all)) {
+      out$recaps$all <- table(factor(x$recaps$all[[paste(column_names[1], event_names[1], sep="_")]],
+                                     levels = names(out$captures[[event_names[1]]])),
+                              factor(x$recaps$all[[paste(column_names[2], event_names[2], sep="_")]],
+                                     levels = names(out$captures[[event_names[2]]])),
+                              useNA = "ifany", dnn=paste(column_names, event_names, sep="_"))
+    }
   } else { # if there are no strata
     out$captures[[event_names[1]]] <- nrow(x$input_data[[event_names[1]]])
     out$captures[[event_names[2]]] <- nrow(x$input_data[[event_names[2]]])
     out$recaps$matched <- nrow(x$recaps$matched)
-    out$recaps$unmatched <- list()
-    out$recaps$unmatched[[event_names[1]]] <- nrow(x$recaps$unmatched[[event_names[1]]])
-    out$recaps$unmatched[[event_names[2]]] <- nrow(x$recaps$unmatched[[event_names[2]]])
-    out$recaps$all <- nrow(x$recaps$all)
+    if(!is.null(x$recaps$unmatched)) out$recaps$unmatched <- list()
+    if(!is.null(x$recaps$unmatched[[event_names[1]]])) {
+      out$recaps$unmatched[[event_names[1]]] <- nrow(x$recaps$unmatched[[event_names[1]]])
+    }
+    if(!is.null(x$recaps$unmatched[[event_names[1]]])) {
+      out$recaps$unmatched[[event_names[2]]] <- nrow(x$recaps$unmatched[[event_names[2]]])
+    }
+    if(!is.null(x$recaps$all)) {
+      out$recaps$all <- nrow(x$recaps$all)
+    }
   }
   
   return(out)
@@ -1030,7 +1010,7 @@ aaTL$recaps$all$`Tag Number_event1`
 #   * or make master length column somehow
 #   DONE * REWORK $recaps$all to semi-interleaved **************** !!!!!!!!!!
 #   DONE   - and of course change truncate/stratify/correct_growth
-# - tabulate stratificationses
+# DONE - tabulate stratificationses
 
 # edge cases i can think of
 # DONE - will $matched ever be constructed of things with different lengths? NO
@@ -1119,5 +1099,6 @@ stratify(x=x, column_names = c("FL", "FL", "FL"), breaks=c(300, 400, 550))
 stratify(x=x, breaks=c(300, 400, 550))
 stratify(x=x, column_names = c("FL", "FL1"), breaks=c(300, 400, 550)) 
 stratify(x=x, column_names = c("FL", "FL1"), breaks=c(300, 400, 550), event_names=c("cap1","cap2")) 
-tabulate_samples(x=x, column_names = "area")
+tabulate_samples(x=x, column_names = "area") 
+tabulate_samples(x=x, column_names = "area", suppressNA=TRUE)
 tabulate_samples(x)
