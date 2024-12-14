@@ -798,307 +798,307 @@ tabulate_samples <- function(x,
 
 
 
-############ ---------- testing zone ------------ #############
-
-### load packages
-library(tidyverse)
-library(recapr)
-library(dsftools)  # devtools::install_github("ADFG-DSF/dsftools")
-
-
-### read data
-Event1 <- read_csv("FDS_2024/flat_data/Event1.csv", skip = 1) %>% 
-  janitor::remove_empty(which = "cols") %>% 
-  janitor::remove_empty(which = "rows") %>%
-  mutate(`Tag Number` = as.character(`Tag Number`))
-
-Event2 <- read_csv("FDS_2024/flat_data/Event2.csv", skip = 1) %>% 
-  janitor::remove_empty(which = "cols") %>% 
-  janitor::remove_empty(which = "rows") %>%
-  mutate(`Tag Number` = as.character(`Tag Number`))
-
-
-
-aa <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2, recap_codes="TL")
-# aa <- recapr_prep(ID="Tag Number", event=NULL, recap_codes="TL", Event1, Event2)
-
-
-aa1 <- correct_growth(x=aa, 
-                      # impute=FALSE, 
-                      event_keep="event1", 
-                      event_adjust="event2", 
-                      column_keep="Fork Length (mm)", 
-                      column_adjust="Fork Length (mm)",
-                      ID_keep="Tag Number",
-                      ID_adjust="Tag Number")
-
-lm1 <- lm(aa$recaps$matched$`Fork Length (mm)_event1` ~ aa$recaps$matched$`Fork Length (mm)_event2`)
-
-plot(aa1$input_data$event2$`Fork Length (mm)`, aa1$input_data$event2$`Fork Length (mm)_adjusted`,
-     pch=ifelse(aa1$input_data$event2$`Tag Number` %in% aa$recaps$matched$`Tag Number_event1`, 16, 1))
-abline(lm1)
-abline(0, 1, lty=3)
-
-# plot(aa1$recaps$matched$`Fork Length (mm)_event2`, aa1$recaps$matched$`Fork Length (mm)_event2_adjusted`)
-# plot(aa1$recaps$matched$`Fork Length (mm)_event1`, aa1$recaps$matched$`Fork Length (mm)_event2_adjusted`)
-plot(aa1$recaps$matched$`Fork Length (mm)_event2`, aa1$recaps$matched$`Fork Length (mm)_adjusted_event2`)
-plot(aa1$recaps$matched$`Fork Length (mm)_event1`, aa1$recaps$matched$`Fork Length (mm)_adjusted_event2`)
-abline(0, 1, lty=3)
-
-plot(aa1$recaps$unmatched$event2$`Fork Length (mm)`, aa1$recaps$unmatched$event2$`Fork Length (mm)_adjusted`)
-abline(lm1)
-
-plot(aa1$recaps$all$event2$`Fork Length (mm)`, aa1$recaps$all$event2$`Fork Length (mm)_adjusted`,
-     pch=ifelse(aa1$recaps$all$event2$`Tag Number` %in% aa$recaps$matched$`Tag Number_event1`, 16, 1))
-plot(aa1$recaps$all$`Fork Length (mm)_event2`, aa1$recaps$all$`Fork Length (mm)_adjusted_event2`,
-     pch=ifelse(aa1$recaps$all$`Tag Number_event2` %in% aa$recaps$matched$`Tag Number_event1`, 16, 1))
-abline(lm1)
-
-all.equal(aa1$input_data$event1, aa$input_data$event1)
-all.equal(aa1$recaps$unmatched$event1, aa$recaps$unmatched$event1)
-all.equal(aa1$recaps$all$event1, aa$recaps$all$event1)
-
-
-
-aa2 <- truncate(x = aa1,
-                event_names = c("event1", "event2"),
-                column_names = c("Fork Length (mm)", "Fork Length (mm)_adjusted"),
-                min = 345, max = 400)
-str(aa2)
-range(aa1$input_data$event1$`Fork Length (mm)`)
-range(aa2$input_data$event1$`Fork Length (mm)`)
-range(aa1$input_data$event2$`Fork Length (mm)_adjusted`)
-range(aa2$input_data$event2$`Fork Length (mm)_adjusted`)
-range(aa1$recaps$matched$`Fork Length (mm)_event1`)
-range(aa2$recaps$matched$`Fork Length (mm)_event1`)
-range(aa1$recaps$matched$`Fork Length (mm)_adjusted_event2`)
-range(aa2$recaps$matched$`Fork Length (mm)_adjusted_event2`)
-range(aa1$recaps$unmatched$event1$`Fork Length (mm)`)
-range(aa2$recaps$unmatched$event1$`Fork Length (mm)`)
-range(aa1$recaps$unmatched$event2$`Fork Length (mm)`)
-range(aa2$recaps$unmatched$event2$`Fork Length (mm)_adjusted`)
-# range(aa1$recaps$all$event1$`Fork Length (mm)`)
-# range(aa2$recaps$all$event1$`Fork Length (mm)`)
-# range(aa1$recaps$all$event2$`Fork Length (mm)_adjusted`)
-# range(aa2$recaps$all$event2$`Fork Length (mm)_adjusted`)
-range(aa1$recaps$all$`Fork Length (mm)_event1`, na.rm=TRUE)
-range(aa2$recaps$all$`Fork Length (mm)_event1`, na.rm=TRUE)
-range(aa1$recaps$all$`Fork Length (mm)_adjusted_event2`, na.rm=TRUE)
-range(aa2$recaps$all$`Fork Length (mm)_adjusted_event2`, na.rm=TRUE)
-
-
-aa3 <- stratify(x = aa1,
-                event_names = c("event1", "event2"),
-                column_names = c("Fork Length (mm)", "Fork Length (mm)_adjusted"),#
-                breaks = c(200, 345, 400, 1000))
-str(aa3)
-plot(aa3$input_data$event1$`Fork Length (mm)` ~ aa3$input_data$event1$`Fork Length (mm)_strat`)
-plot(aa3$input_data$event2$`Fork Length (mm)_adjusted` ~ aa3$input_data$event2$`Fork Length (mm)_adjusted_strat`)
-plot(aa3$recaps$matched$`Fork Length (mm)_event1` ~ aa3$recaps$matched$`Fork Length (mm)_strat_event1`)
-plot(aa3$recaps$matched$`Fork Length (mm)_adjusted_event2` ~ aa3$recaps$matched$`Fork Length (mm)_adjusted_strat_event2`)
-plot(aa3$recaps$unmatched$event2$`Fork Length (mm)_adjusted` ~ aa3$recaps$unmatched$event2$`Fork Length (mm)_adjusted_strat`)
-# plot(aa3$recaps$all$event1$`Fork Length (mm)` ~ aa3$recaps$all$event1$`Fork Length (mm)_strat`)
-# plot(aa3$recaps$all$event2$`Fork Length (mm)_adjusted` ~ aa3$recaps$all$event2$`Fork Length (mm)_adjusted_strat`)
-plot(aa3$recaps$all$`Fork Length (mm)_event1` ~ aa3$recaps$all$`Fork Length (mm)_strat_event1`)
-plot(aa3$recaps$all$`Fork Length (mm)_adjusted_event2` ~ aa3$recaps$all$`Fork Length (mm)_adjusted_strat_event2`)
-
-
-
-Event2na <- Event2
-Event2na$`Fork Length (mm)`[Event2na$`Tag Number` == 770] <- NA
-
-aana <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2na, recap_codes="TL")
-all.equal(aa, aana)
-
-aa1na <- correct_growth(x=aana, 
-                        event_keep="event1", 
-                        event_adjust="event2", 
-                        column_keep="Fork Length (mm)", 
-                        column_adjust="Fork Length (mm)",
-                        ID_keep="Tag Number",
-                        ID_adjust="Tag Number")
-all.equal(aa1, aa1na)
-
-
-## should do these without growth correcting ##
-
-aa2na <- truncate(x = aana,
-                  event_names = c("event1", "event2"),
-                  column_names = c("Fork Length (mm)", "Fork Length (mm)"),
-                  min = 345, max = 400)
-aa2b <- truncate(x = aa,
-                  event_names = c("event1", "event2"),
-                  column_names = c("Fork Length (mm)", "Fork Length (mm)"),
-                  min = 345, max = 400)
-all.equal(aa2b, aa2na)
-dim(aa2na$input_data$event1)
-dim(aa2b$input_data$event1)
-dim(aa2na$input_data$event2)
-dim(aa2b$input_data$event2)
-dim(aa2na$recaps$matched)
-dim(aa2b$recaps$matched)
-dim(aa2na$recaps$unmatched$event1)
-dim(aa2b$recaps$unmatched$event1)
-# dim(aa2na$recaps$all$event1)
-# dim(aa2b$recaps$all$event1)
-dim(aa2na$recaps$all)
-dim(aa2b$recaps$all)
-# dim(aa2na$recaps$all$event2)
-# dim(aa2b$recaps$all$event2)
-
-
-
-aa3na <- stratify(x = aana,
-                  event_names = c("event1", "event2"),
-                  column_names = c("Fork Length (mm)", "Fork Length (mm)"),#
-                  breaks = c(200, 345, 400, 1000))
-aa3b <- stratify(x = aa,
-                  event_names = c("event1", "event2"),
-                  column_names = c("Fork Length (mm)", "Fork Length (mm)"),#
-                  breaks = c(200, 345, 400, 1000))
-all.equal(aa3b, aa3na)
-dim(aa3na$input_data$event1)
-dim(aa3b$input_data$event1)
-dim(aa3na$input_data$event2)
-dim(aa3b$input_data$event2)
-dim(aa3na$recaps$matched)
-dim(aa3b$recaps$matched)
-dim(aa3na$recaps$unmatched$event1)
-dim(aa3b$recaps$unmatched$event1)
-# dim(aa3na$recaps$all$event1)
-# dim(aa3b$recaps$all$event1)
-# dim(aa3na$recaps$all$event2)
-# dim(aa3b$recaps$all$event2)
-dim(aa3na$recaps$all)
-dim(aa3b$recaps$all)
-
-table(aa3na$input_data$event1$`Fork Length (mm)_strat`, useNA = "always")
-table(aa3b$input_data$event1$`Fork Length (mm)_strat`, useNA = "always")
-table(aa3na$input_data$event2$`Fork Length (mm)_strat`, useNA = "always")
-table(aa3b$input_data$event2$`Fork Length (mm)_strat`, useNA = "always")
-table(aa3na$recaps$matched$`Fork Length (mm)_strat_event1`, useNA = "always")
-table(aa3b$recaps$matched$`Fork Length (mm)_strat_event1`, useNA = "always")
-table(aa3na$recaps$matched$`Fork Length (mm)_strat_event2`, useNA = "always")
-table(aa3b$recaps$matched$`Fork Length (mm)_strat_event2`, useNA = "always")
-table(aa3na$recaps$unmatched$event1$`Fork Length (mm)_strat`, useNA = "always")
-table(aa3b$recaps$unmatched$event1$`Fork Length (mm)_strat`, useNA = "always")
-table(aa3na$recaps$unmatched$event2$`Fork Length (mm)_strat`, useNA = "always")
-table(aa3b$recaps$unmatched$event2$`Fork Length (mm)_strat`, useNA = "always")
-# table(aa3na$recaps$all$event1$`Fork Length (mm)_strat`, useNA = "always")
-# table(aa3b$recaps$all$event1$`Fork Length (mm)_strat`, useNA = "always")
-# table(aa3na$recaps$all$event2$`Fork Length (mm)_strat`, useNA = "always")
-# table(aa3b$recaps$all$event2$`Fork Length (mm)_strat`, useNA = "always")
-table(aa3na$recaps$all$`Fork Length (mm)_strat_event1`, useNA="always")
-table(aa3b$recaps$all$`Fork Length (mm)_strat_event1`, useNA="always")
-table(aa3na$recaps$all$`Fork Length (mm)_strat_event2`, useNA="always")
-table(aa3b$recaps$all$`Fork Length (mm)_strat_event2`, useNA="always")
-
-
-Event1TL <- Event1
-Event1TL$`Tag Number`[1] <- "TL"
-aaTL <- recapr_prep(ID="Tag Number", event1=Event1TL, event2=Event2, recap_codes="TL")
-str(aaTL$recaps)
-aaTL$recaps$matched$`Tag Number_event1`   # seems to not include TL??
-aaTL$recaps$unmatched$event1$`Tag Number`
-aaTL$recaps$all$`Tag Number_event1`
-
-
-# could theoretically
-# - automate ks tests
-# - automate chisq tests -> make inputs for recapr::consistencytest
-# DONE - df of all unique fish ***************************************
-#   * or make master length column somehow
-#   DONE * REWORK $recaps$all to semi-interleaved **************** !!!!!!!!!!
-#   DONE   - and of course change truncate/stratify/correct_growth
-# DONE - tabulate stratificationses
-
-# edge cases i can think of
-# DONE - will $matched ever be constructed of things with different lengths? NO
-# DONE - what happens when there are NA values in (length)  ALL FINE
-#   * truncate  REMOVES NA
-#   * stratify  MAKES NA
-#   * correct_growth MAKES NA
-# - (maybe change adjusted to corrected, or else correct_growth to adjust_growth or growth_correction)
-# DONE - could there be NA in ID column? NO
-# DONE - what happens when data is not named in recapr_prep? MAKES NEW NAMES
-# DONE - what happens when min and max are left null?  NOTHING
-# - what happens when elements of recap_codes are repeated in both events?
-
-# idea: add length and stratification column names for each event to MR_data object
-# print or summary method: tabulate counts by stratum?? range of numeric values? pop estimates??
-# DONE in correct_growth: add a logical argument for whether to directly impute matched 
-
-# problem: how to make lengths/stratum/counts consistent for $recaps
-
-## DONE robustify default column names etc (allow length-1 if column is present)
-
-
-
-
-# # make a toy dataset!
-# n1 <- 30
-# n2 <- 30
-# m2 <- 10
-# cap1 <- data.frame(tag = 1:n1,
-#                    FL = round(rnorm(n1, mean=400, sd=50)),
-#                    area = sample(LETTERS[1:3], n1, replace=TRUE))
-# cap2 <- data.frame(tag = NA,
-#                    FL = round(rnorm(n1, mean=400, sd=50)),
-#                    area = sample(LETTERS[1:3], n1, replace=TRUE))
-# cap1_recaps <- sample(n1, m2)
-# cap2_recaps <- sample(n2, m2)
-# cap2$tag[cap2_recaps] <- cap1$tag[cap1_recaps]
-# cap2$FL[cap2_recaps] <- cap1$FL[cap1_recaps] + round(rnorm(m2, mean=10, sd=4))
+# ############ ---------- testing zone ------------ #############
 # 
-# cap1$tag[sample(n1, 1)] <- "TL"
-# cap1$FL[sample(n1, 1)] <- NA
-# cap1$area[sample(n1, 1)] <- NA
+# ### load packages
+# library(tidyverse)
+# library(recapr)
+# library(dsftools)  # devtools::install_github("ADFG-DSF/dsftools")
 # 
-# cap2$tag[sample(cap2_recaps, 2)] <- "TL"
-# cap2$FL[sample(n2, 1)] <- NA
-
-
-
-cap1 <-
-  structure(list(tag = c(1L, "TL", 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 
-                         11L, 12L, 13L, 14L, 15L, 16L, 17L, 18L, 19L, 20L, 21L, 22L, 23L, 
-                         24L, 25L, 26L, 27L, 28L, 29L, 30L), 
-                 FL = c(320, 463, 397, 447, 
-                        422, 476, 342, 416, 395, NA, 461, 377, 414, 387, 310, 313, 396, 
-                        432, 374, 487, 361, 426, 369, 360, 406, 367, 413, 329, 400, 340), 
-                 area = c("B", "B", "A", "B", "A", "A", "B", "A", NA, "A", 
-                          "C", "C", "C", "B", "C", "C", "A", "B", "A", "C", "B", "A", "A", 
-                          "A", "A", "C", "C", "C", "C", "B")), 
-            row.names = c(NA, -30L), class = "data.frame")
-cap2 <-
-  structure(list(tag = c("25", NA, NA, NA, NA, "17", "14", NA, 
-                         NA, "2", NA, NA, NA, NA, "TL", NA, NA, "29", NA, NA, "20", NA, 
-                         "9", NA, NA, "13", NA, NA, "TL", NA), 
-                 FL = c(411, 405, 425, 436, 
-                        395, 408, 399, 441, 309, 478, 341, 443, 368, 305, 361, NA, 317, 
-                        411, 398, 387, 501, 390, 402, 372, 367, 424, 346, 360, 420, 411), 
-                 area = c("B", "B", "C", "A", "C", "A", "B", "A", "A", "A", 
-                          "B", "A", "A", "B", "A", "B", "B", "A", "C", "B", "A", "A", "A", 
-                          "B", "C", "B", "A", "B", "C", "B")), 
-            row.names = c(NA, -30L), class = "data.frame")
-
-
-x <- recapr_prep(ID="tag", recap_codes = "TL", cap1=cap1, cap2=cap2)
-x
-truncate(x=x, event_names=c("cap1","cap2"), column_names = c("FL","FL"), min=400, max=450)
-stratify(x=x, event_names=c("cap1","cap2"), column_names = c("FL","FL"), breaks=c(300, 400, 500))
-correct_growth(x=x, event_keep="cap1", event_adjust="cap2", column_keep="FL", column_adjust="FL", ID_keep="tag")#, impute=F)
-
-stratify(x=x, column_names = c("FL", "FL"), breaks=c(300, 400, 550), event_names=c("cap1","cap2"))
-stratify(x=x, column_names = c("FL"), breaks=c(300, 400, 550), event_names=c("cap1","cap2"))
-stratify(x=x, column_names = c("FL", "FL"), breaks=c(300, 400, 550))   
-stratify(x=x, column_names = c("FL"), breaks=c(300, 400, 550))
-stratify(x=x, column_names = c("FL", "FL"), breaks=c(300, 400, 550), event_names=c("cap1"))
-stratify(x=x, column_names = c("FL"), breaks=c(300, 400, 550), event_names=c("cap1"))
-stratify(x=x, column_names = c("FL", "FL", "FL"), breaks=c(300, 400, 550))
-stratify(x=x, breaks=c(300, 400, 550))
-stratify(x=x, column_names = c("FL", "FL1"), breaks=c(300, 400, 550)) 
-stratify(x=x, column_names = c("FL", "FL1"), breaks=c(300, 400, 550), event_names=c("cap1","cap2")) 
-tabulate_samples(x=x, column_names = "area") 
-tabulate_samples(x=x, column_names = "area", suppressNA=TRUE)
-tabulate_samples(x)
+# 
+# ### read data
+# Event1 <- read_csv("FDS_2024/flat_data/Event1.csv", skip = 1) %>% 
+#   janitor::remove_empty(which = "cols") %>% 
+#   janitor::remove_empty(which = "rows") %>%
+#   mutate(`Tag Number` = as.character(`Tag Number`))
+# 
+# Event2 <- read_csv("FDS_2024/flat_data/Event2.csv", skip = 1) %>% 
+#   janitor::remove_empty(which = "cols") %>% 
+#   janitor::remove_empty(which = "rows") %>%
+#   mutate(`Tag Number` = as.character(`Tag Number`))
+# 
+# 
+# 
+# aa <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2, recap_codes="TL")
+# # aa <- recapr_prep(ID="Tag Number", event=NULL, recap_codes="TL", Event1, Event2)
+# 
+# 
+# aa1 <- correct_growth(x=aa, 
+#                       # impute=FALSE, 
+#                       event_keep="event1", 
+#                       event_adjust="event2", 
+#                       column_keep="Fork Length (mm)", 
+#                       column_adjust="Fork Length (mm)",
+#                       ID_keep="Tag Number",
+#                       ID_adjust="Tag Number")
+# 
+# lm1 <- lm(aa$recaps$matched$`Fork Length (mm)_event1` ~ aa$recaps$matched$`Fork Length (mm)_event2`)
+# 
+# plot(aa1$input_data$event2$`Fork Length (mm)`, aa1$input_data$event2$`Fork Length (mm)_adjusted`,
+#      pch=ifelse(aa1$input_data$event2$`Tag Number` %in% aa$recaps$matched$`Tag Number_event1`, 16, 1))
+# abline(lm1)
+# abline(0, 1, lty=3)
+# 
+# # plot(aa1$recaps$matched$`Fork Length (mm)_event2`, aa1$recaps$matched$`Fork Length (mm)_event2_adjusted`)
+# # plot(aa1$recaps$matched$`Fork Length (mm)_event1`, aa1$recaps$matched$`Fork Length (mm)_event2_adjusted`)
+# plot(aa1$recaps$matched$`Fork Length (mm)_event2`, aa1$recaps$matched$`Fork Length (mm)_adjusted_event2`)
+# plot(aa1$recaps$matched$`Fork Length (mm)_event1`, aa1$recaps$matched$`Fork Length (mm)_adjusted_event2`)
+# abline(0, 1, lty=3)
+# 
+# plot(aa1$recaps$unmatched$event2$`Fork Length (mm)`, aa1$recaps$unmatched$event2$`Fork Length (mm)_adjusted`)
+# abline(lm1)
+# 
+# plot(aa1$recaps$all$event2$`Fork Length (mm)`, aa1$recaps$all$event2$`Fork Length (mm)_adjusted`,
+#      pch=ifelse(aa1$recaps$all$event2$`Tag Number` %in% aa$recaps$matched$`Tag Number_event1`, 16, 1))
+# plot(aa1$recaps$all$`Fork Length (mm)_event2`, aa1$recaps$all$`Fork Length (mm)_adjusted_event2`,
+#      pch=ifelse(aa1$recaps$all$`Tag Number_event2` %in% aa$recaps$matched$`Tag Number_event1`, 16, 1))
+# abline(lm1)
+# 
+# all.equal(aa1$input_data$event1, aa$input_data$event1)
+# all.equal(aa1$recaps$unmatched$event1, aa$recaps$unmatched$event1)
+# all.equal(aa1$recaps$all$event1, aa$recaps$all$event1)
+# 
+# 
+# 
+# aa2 <- truncate(x = aa1,
+#                 event_names = c("event1", "event2"),
+#                 column_names = c("Fork Length (mm)", "Fork Length (mm)_adjusted"),
+#                 min = 345, max = 400)
+# str(aa2)
+# range(aa1$input_data$event1$`Fork Length (mm)`)
+# range(aa2$input_data$event1$`Fork Length (mm)`)
+# range(aa1$input_data$event2$`Fork Length (mm)_adjusted`)
+# range(aa2$input_data$event2$`Fork Length (mm)_adjusted`)
+# range(aa1$recaps$matched$`Fork Length (mm)_event1`)
+# range(aa2$recaps$matched$`Fork Length (mm)_event1`)
+# range(aa1$recaps$matched$`Fork Length (mm)_adjusted_event2`)
+# range(aa2$recaps$matched$`Fork Length (mm)_adjusted_event2`)
+# range(aa1$recaps$unmatched$event1$`Fork Length (mm)`)
+# range(aa2$recaps$unmatched$event1$`Fork Length (mm)`)
+# range(aa1$recaps$unmatched$event2$`Fork Length (mm)`)
+# range(aa2$recaps$unmatched$event2$`Fork Length (mm)_adjusted`)
+# # range(aa1$recaps$all$event1$`Fork Length (mm)`)
+# # range(aa2$recaps$all$event1$`Fork Length (mm)`)
+# # range(aa1$recaps$all$event2$`Fork Length (mm)_adjusted`)
+# # range(aa2$recaps$all$event2$`Fork Length (mm)_adjusted`)
+# range(aa1$recaps$all$`Fork Length (mm)_event1`, na.rm=TRUE)
+# range(aa2$recaps$all$`Fork Length (mm)_event1`, na.rm=TRUE)
+# range(aa1$recaps$all$`Fork Length (mm)_adjusted_event2`, na.rm=TRUE)
+# range(aa2$recaps$all$`Fork Length (mm)_adjusted_event2`, na.rm=TRUE)
+# 
+# 
+# aa3 <- stratify(x = aa1,
+#                 event_names = c("event1", "event2"),
+#                 column_names = c("Fork Length (mm)", "Fork Length (mm)_adjusted"),#
+#                 breaks = c(200, 345, 400, 1000))
+# str(aa3)
+# plot(aa3$input_data$event1$`Fork Length (mm)` ~ aa3$input_data$event1$`Fork Length (mm)_strat`)
+# plot(aa3$input_data$event2$`Fork Length (mm)_adjusted` ~ aa3$input_data$event2$`Fork Length (mm)_adjusted_strat`)
+# plot(aa3$recaps$matched$`Fork Length (mm)_event1` ~ aa3$recaps$matched$`Fork Length (mm)_strat_event1`)
+# plot(aa3$recaps$matched$`Fork Length (mm)_adjusted_event2` ~ aa3$recaps$matched$`Fork Length (mm)_adjusted_strat_event2`)
+# plot(aa3$recaps$unmatched$event2$`Fork Length (mm)_adjusted` ~ aa3$recaps$unmatched$event2$`Fork Length (mm)_adjusted_strat`)
+# # plot(aa3$recaps$all$event1$`Fork Length (mm)` ~ aa3$recaps$all$event1$`Fork Length (mm)_strat`)
+# # plot(aa3$recaps$all$event2$`Fork Length (mm)_adjusted` ~ aa3$recaps$all$event2$`Fork Length (mm)_adjusted_strat`)
+# plot(aa3$recaps$all$`Fork Length (mm)_event1` ~ aa3$recaps$all$`Fork Length (mm)_strat_event1`)
+# plot(aa3$recaps$all$`Fork Length (mm)_adjusted_event2` ~ aa3$recaps$all$`Fork Length (mm)_adjusted_strat_event2`)
+# 
+# 
+# 
+# Event2na <- Event2
+# Event2na$`Fork Length (mm)`[Event2na$`Tag Number` == 770] <- NA
+# 
+# aana <- recapr_prep(ID="Tag Number", event1=Event1, event2=Event2na, recap_codes="TL")
+# all.equal(aa, aana)
+# 
+# aa1na <- correct_growth(x=aana, 
+#                         event_keep="event1", 
+#                         event_adjust="event2", 
+#                         column_keep="Fork Length (mm)", 
+#                         column_adjust="Fork Length (mm)",
+#                         ID_keep="Tag Number",
+#                         ID_adjust="Tag Number")
+# all.equal(aa1, aa1na)
+# 
+# 
+# ## should do these without growth correcting ##
+# 
+# aa2na <- truncate(x = aana,
+#                   event_names = c("event1", "event2"),
+#                   column_names = c("Fork Length (mm)", "Fork Length (mm)"),
+#                   min = 345, max = 400)
+# aa2b <- truncate(x = aa,
+#                   event_names = c("event1", "event2"),
+#                   column_names = c("Fork Length (mm)", "Fork Length (mm)"),
+#                   min = 345, max = 400)
+# all.equal(aa2b, aa2na)
+# dim(aa2na$input_data$event1)
+# dim(aa2b$input_data$event1)
+# dim(aa2na$input_data$event2)
+# dim(aa2b$input_data$event2)
+# dim(aa2na$recaps$matched)
+# dim(aa2b$recaps$matched)
+# dim(aa2na$recaps$unmatched$event1)
+# dim(aa2b$recaps$unmatched$event1)
+# # dim(aa2na$recaps$all$event1)
+# # dim(aa2b$recaps$all$event1)
+# dim(aa2na$recaps$all)
+# dim(aa2b$recaps$all)
+# # dim(aa2na$recaps$all$event2)
+# # dim(aa2b$recaps$all$event2)
+# 
+# 
+# 
+# aa3na <- stratify(x = aana,
+#                   event_names = c("event1", "event2"),
+#                   column_names = c("Fork Length (mm)", "Fork Length (mm)"),#
+#                   breaks = c(200, 345, 400, 1000))
+# aa3b <- stratify(x = aa,
+#                   event_names = c("event1", "event2"),
+#                   column_names = c("Fork Length (mm)", "Fork Length (mm)"),#
+#                   breaks = c(200, 345, 400, 1000))
+# all.equal(aa3b, aa3na)
+# dim(aa3na$input_data$event1)
+# dim(aa3b$input_data$event1)
+# dim(aa3na$input_data$event2)
+# dim(aa3b$input_data$event2)
+# dim(aa3na$recaps$matched)
+# dim(aa3b$recaps$matched)
+# dim(aa3na$recaps$unmatched$event1)
+# dim(aa3b$recaps$unmatched$event1)
+# # dim(aa3na$recaps$all$event1)
+# # dim(aa3b$recaps$all$event1)
+# # dim(aa3na$recaps$all$event2)
+# # dim(aa3b$recaps$all$event2)
+# dim(aa3na$recaps$all)
+# dim(aa3b$recaps$all)
+# 
+# table(aa3na$input_data$event1$`Fork Length (mm)_strat`, useNA = "always")
+# table(aa3b$input_data$event1$`Fork Length (mm)_strat`, useNA = "always")
+# table(aa3na$input_data$event2$`Fork Length (mm)_strat`, useNA = "always")
+# table(aa3b$input_data$event2$`Fork Length (mm)_strat`, useNA = "always")
+# table(aa3na$recaps$matched$`Fork Length (mm)_strat_event1`, useNA = "always")
+# table(aa3b$recaps$matched$`Fork Length (mm)_strat_event1`, useNA = "always")
+# table(aa3na$recaps$matched$`Fork Length (mm)_strat_event2`, useNA = "always")
+# table(aa3b$recaps$matched$`Fork Length (mm)_strat_event2`, useNA = "always")
+# table(aa3na$recaps$unmatched$event1$`Fork Length (mm)_strat`, useNA = "always")
+# table(aa3b$recaps$unmatched$event1$`Fork Length (mm)_strat`, useNA = "always")
+# table(aa3na$recaps$unmatched$event2$`Fork Length (mm)_strat`, useNA = "always")
+# table(aa3b$recaps$unmatched$event2$`Fork Length (mm)_strat`, useNA = "always")
+# # table(aa3na$recaps$all$event1$`Fork Length (mm)_strat`, useNA = "always")
+# # table(aa3b$recaps$all$event1$`Fork Length (mm)_strat`, useNA = "always")
+# # table(aa3na$recaps$all$event2$`Fork Length (mm)_strat`, useNA = "always")
+# # table(aa3b$recaps$all$event2$`Fork Length (mm)_strat`, useNA = "always")
+# table(aa3na$recaps$all$`Fork Length (mm)_strat_event1`, useNA="always")
+# table(aa3b$recaps$all$`Fork Length (mm)_strat_event1`, useNA="always")
+# table(aa3na$recaps$all$`Fork Length (mm)_strat_event2`, useNA="always")
+# table(aa3b$recaps$all$`Fork Length (mm)_strat_event2`, useNA="always")
+# 
+# 
+# Event1TL <- Event1
+# Event1TL$`Tag Number`[1] <- "TL"
+# aaTL <- recapr_prep(ID="Tag Number", event1=Event1TL, event2=Event2, recap_codes="TL")
+# str(aaTL$recaps)
+# aaTL$recaps$matched$`Tag Number_event1`   # seems to not include TL??
+# aaTL$recaps$unmatched$event1$`Tag Number`
+# aaTL$recaps$all$`Tag Number_event1`
+# 
+# 
+# # could theoretically
+# # - automate ks tests
+# # - automate chisq tests -> make inputs for recapr::consistencytest
+# # DONE - df of all unique fish ***************************************
+# #   * or make master length column somehow
+# #   DONE * REWORK $recaps$all to semi-interleaved **************** !!!!!!!!!!
+# #   DONE   - and of course change truncate/stratify/correct_growth
+# # DONE - tabulate stratificationses
+# 
+# # edge cases i can think of
+# # DONE - will $matched ever be constructed of things with different lengths? NO
+# # DONE - what happens when there are NA values in (length)  ALL FINE
+# #   * truncate  REMOVES NA
+# #   * stratify  MAKES NA
+# #   * correct_growth MAKES NA
+# # - (maybe change adjusted to corrected, or else correct_growth to adjust_growth or growth_correction)
+# # DONE - could there be NA in ID column? NO
+# # DONE - what happens when data is not named in recapr_prep? MAKES NEW NAMES
+# # DONE - what happens when min and max are left null?  NOTHING
+# # - what happens when elements of recap_codes are repeated in both events?
+# 
+# # idea: add length and stratification column names for each event to MR_data object
+# # print or summary method: tabulate counts by stratum?? range of numeric values? pop estimates??
+# # DONE in correct_growth: add a logical argument for whether to directly impute matched 
+# 
+# # problem: how to make lengths/stratum/counts consistent for $recaps
+# 
+# ## DONE robustify default column names etc (allow length-1 if column is present)
+# 
+# 
+# 
+# 
+# # # make a toy dataset!
+# # n1 <- 30
+# # n2 <- 30
+# # m2 <- 10
+# # cap1 <- data.frame(tag = 1:n1,
+# #                    FL = round(rnorm(n1, mean=400, sd=50)),
+# #                    area = sample(LETTERS[1:3], n1, replace=TRUE))
+# # cap2 <- data.frame(tag = NA,
+# #                    FL = round(rnorm(n1, mean=400, sd=50)),
+# #                    area = sample(LETTERS[1:3], n1, replace=TRUE))
+# # cap1_recaps <- sample(n1, m2)
+# # cap2_recaps <- sample(n2, m2)
+# # cap2$tag[cap2_recaps] <- cap1$tag[cap1_recaps]
+# # cap2$FL[cap2_recaps] <- cap1$FL[cap1_recaps] + round(rnorm(m2, mean=10, sd=4))
+# # 
+# # cap1$tag[sample(n1, 1)] <- "TL"
+# # cap1$FL[sample(n1, 1)] <- NA
+# # cap1$area[sample(n1, 1)] <- NA
+# # 
+# # cap2$tag[sample(cap2_recaps, 2)] <- "TL"
+# # cap2$FL[sample(n2, 1)] <- NA
+# 
+# 
+# 
+# cap1 <-
+#   structure(list(tag = c(1L, "TL", 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 
+#                          11L, 12L, 13L, 14L, 15L, 16L, 17L, 18L, 19L, 20L, 21L, 22L, 23L, 
+#                          24L, 25L, 26L, 27L, 28L, 29L, 30L), 
+#                  FL = c(320, 463, 397, 447, 
+#                         422, 476, 342, 416, 395, NA, 461, 377, 414, 387, 310, 313, 396, 
+#                         432, 374, 487, 361, 426, 369, 360, 406, 367, 413, 329, 400, 340), 
+#                  area = c("B", "B", "A", "B", "A", "A", "B", "A", NA, "A", 
+#                           "C", "C", "C", "B", "C", "C", "A", "B", "A", "C", "B", "A", "A", 
+#                           "A", "A", "C", "C", "C", "C", "B")), 
+#             row.names = c(NA, -30L), class = "data.frame")
+# cap2 <-
+#   structure(list(tag = c("25", NA, NA, NA, NA, "17", "14", NA, 
+#                          NA, "2", NA, NA, NA, NA, "TL", NA, NA, "29", NA, NA, "20", NA, 
+#                          "9", NA, NA, "13", NA, NA, "TL", NA), 
+#                  FL = c(411, 405, 425, 436, 
+#                         395, 408, 399, 441, 309, 478, 341, 443, 368, 305, 361, NA, 317, 
+#                         411, 398, 387, 501, 390, 402, 372, 367, 424, 346, 360, 420, 411), 
+#                  area = c("B", "B", "C", "A", "C", "A", "B", "A", "A", "A", 
+#                           "B", "A", "A", "B", "A", "B", "B", "A", "C", "B", "A", "A", "A", 
+#                           "B", "C", "B", "A", "B", "C", "B")), 
+#             row.names = c(NA, -30L), class = "data.frame")
+# 
+# 
+# x <- recapr_prep(ID="tag", recap_codes = "TL", cap1=cap1, cap2=cap2)
+# x
+# truncate(x=x, event_names=c("cap1","cap2"), column_names = c("FL","FL"), min=400, max=450)
+# stratify(x=x, event_names=c("cap1","cap2"), column_names = c("FL","FL"), breaks=c(300, 400, 500))
+# correct_growth(x=x, event_keep="cap1", event_adjust="cap2", column_keep="FL", column_adjust="FL", ID_keep="tag")#, impute=F)
+# 
+# stratify(x=x, column_names = c("FL", "FL"), breaks=c(300, 400, 550), event_names=c("cap1","cap2"))
+# stratify(x=x, column_names = c("FL"), breaks=c(300, 400, 550), event_names=c("cap1","cap2"))
+# stratify(x=x, column_names = c("FL", "FL"), breaks=c(300, 400, 550))   
+# stratify(x=x, column_names = c("FL"), breaks=c(300, 400, 550))
+# stratify(x=x, column_names = c("FL", "FL"), breaks=c(300, 400, 550), event_names=c("cap1"))
+# stratify(x=x, column_names = c("FL"), breaks=c(300, 400, 550), event_names=c("cap1"))
+# stratify(x=x, column_names = c("FL", "FL", "FL"), breaks=c(300, 400, 550))
+# stratify(x=x, breaks=c(300, 400, 550))
+# stratify(x=x, column_names = c("FL", "FL1"), breaks=c(300, 400, 550)) 
+# stratify(x=x, column_names = c("FL", "FL1"), breaks=c(300, 400, 550), event_names=c("cap1","cap2")) 
+# tabulate_samples(x=x, column_names = "area") 
+# tabulate_samples(x=x, column_names = "area", suppressNA=TRUE)
+# tabulate_samples(x)
