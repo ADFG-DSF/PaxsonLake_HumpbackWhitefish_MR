@@ -50,6 +50,59 @@ spawn_sample <- read_csv("FDS_2024/flat_data/spawn_sample.csv")%>%
 
 
 
+### addition 5/20/25 to verify report numbers
+ASL_table(sex=spawn_sample$Sex)
+
+for(datei in sort(unique(spawn_sample$Date))) {
+  print(datei)
+  print(ASL_table(sex=spawn_sample$Sex[spawn_sample$Date==datei]))
+}
+
+ASL_table(length = spawn_sample$Length)
+sd(spawn_sample$Length)
+mean(spawn_sample$Length[spawn_sample$Sex=="M"])
+sd(spawn_sample$Length[spawn_sample$Sex=="M"])
+mean(spawn_sample$Length[spawn_sample$Sex=="F"])
+sd(spawn_sample$Length[spawn_sample$Sex=="F"])
+
+ASL_table(sex=cut(spawn_sample$Length,
+                  breaks=c(0,seq(305,485, by=20)),
+                  right=FALSE))
+ASL_table(sex=cut(spawn_sample$Length[spawn_sample$Sex=="F"],
+                  breaks=c(0,seq(305,485, by=20)),
+                  right=FALSE))
+ASL_table(sex=cut(spawn_sample$Length[spawn_sample$Sex=="M"],
+                  breaks=c(0,seq(305,485, by=20)),
+                  right=FALSE))
+
+ASL_table(age=spawn_sample$Maturity)
+for(datei in sort(unique(spawn_sample$Date))) {
+  print(datei)
+  print(ASL_table(sex=spawn_sample$Maturity[spawn_sample$Date==datei]))
+}
+
+ASL_table(length=spawn_sample$Age)
+mean(spawn_sample$Age, na.rm=TRUE)
+sd(spawn_sample$Age, na.rm=TRUE)
+for(datei in sort(unique(spawn_sample$Date))) {
+  print(datei)
+  print(mean(spawn_sample$Age[spawn_sample$Date==datei], na.rm=TRUE))
+  print(sd(spawn_sample$Age[spawn_sample$Date==datei], na.rm=TRUE))
+}
+for(datei in sort(unique(spawn_sample$Date))) {
+  print("---")
+  print(mean(spawn_sample$Age[spawn_sample$Date==datei & spawn_sample$Sex=="F"], na.rm=TRUE))
+  print(sd(spawn_sample$Age[spawn_sample$Date==datei & spawn_sample$Sex=="F"], na.rm=TRUE))
+}
+for(datei in sort(unique(spawn_sample$Date))) {
+  print("---")
+  print(mean(spawn_sample$Age[spawn_sample$Date==datei & spawn_sample$Sex=="M"], na.rm=TRUE))
+  print(sd(spawn_sample$Age[spawn_sample$Date==datei & spawn_sample$Sex=="M"], na.rm=TRUE))
+}
+mean(spawn_sample$Age[spawn_sample$Sex=="F"], na.rm=TRUE)
+sd(spawn_sample$Age[spawn_sample$Sex=="F"], na.rm=TRUE)
+mean(spawn_sample$Age[spawn_sample$Sex=="M"], na.rm=TRUE)
+sd(spawn_sample$Age[spawn_sample$Sex=="M"], na.rm=TRUE)
 
 
 ############# Tabulating summary statistics for lengths by age bin ##########

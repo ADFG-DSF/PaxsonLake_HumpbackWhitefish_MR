@@ -57,6 +57,9 @@ lm_growth <- lm(yreg ~ xreg)
 summary(lm_growth)
 lm_predict <- predict(lm_growth, newdata = data.frame(xreg=Event2$`Fork Length (mm)`))
 
+t.test(yreg-xreg)
+
+
 ####### addition 11/22
 # impute first event lengths for recaps
 for(i in 1:nrow(Event2)) {
@@ -189,6 +192,33 @@ sestrat(n1 = table(Event1$`Fork Length (mm)` >= 400),
        estimator="Chapman")
 
 ## tallies do not match 11/22 (missing 399-400cm corrected lengths)
+
+
+## update 5/19/25 to verify stratified proportions
+lengthinput <- c(Event1$`Fork Length (mm)`,
+                 Event2$`Fork Length Corrected (mm)`)
+lengthstrata <- cut(lengthinput, breaks=c(0,400, 1000), right=FALSE)
+lengthbin <- cut(lengthinput, breaks=c(seq(345, 515, by=10)), right=FALSE)
+
+Nhat <- NChapman(n1 = table(Event1$`Fork Length (mm)` >= 400),
+                 n2 = table(Event2$`Fork Length Corrected (mm)` >= 400),
+                 m2 = table(Event2_recaps$`Fork Length Corrected (mm)` >= 400))
+seNhat <- seChapman(n1 = table(Event1$`Fork Length (mm)` >= 400),
+          n2 = table(Event2$`Fork Length Corrected (mm)` >= 400),
+          m2 = table(Event2_recaps$`Fork Length Corrected (mm)` >= 400))
+
+the_tbl <- ASL_table(age=lengthbin,
+          stratum=as.numeric(lengthstrata),
+          Nhat=as.numeric(Nhat),
+          se_Nhat=as.numeric(seNhat))
+
+par(mfrow=c(1,1))
+plot(the_tbl$phat)
+segments(x0=1:nrow(the_tbl),
+         y0=the_tbl$phat - qnorm(0.95)*the_tbl$se_phat,
+         y1=the_tbl$phat + qnorm(0.95)*the_tbl$se_phat)
+
+
 
 # As of 11/25, April attempted to reconcile the methods by ROUNDing the corrected lengths
 # This is an investigation of whether that worked
