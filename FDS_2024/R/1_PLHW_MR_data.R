@@ -32,19 +32,19 @@ library(dsftools)  # devtools::install_github("ADFG-DSF/dsftools")
 
 
 ### read data
-Event1 <- read_csv("FDS_2024/flat_data/Event1.csv", skip = 1) %>% 
+Event1 <- Event1_raw <- read_csv("FDS_2024/flat_data/Event1.csv", skip = 1) %>% 
   janitor::remove_empty(which = "cols") %>% 
   janitor::remove_empty(which = "rows") %>%
   mutate(`Tag Number` = as.character(`Tag Number`))
 
-Event2 <- read_csv("FDS_2024/flat_data/Event2.csv", skip = 1) %>% 
+Event2 <- Event2_raw <- read_csv("FDS_2024/flat_data/Event2.csv", skip = 1) %>% 
   janitor::remove_empty(which = "cols") %>% 
   janitor::remove_empty(which = "rows") %>%
   mutate(`Tag Number` = as.character(`Tag Number`))
 
-Event2_recaps <- subset(Event2, !is.na(`Tag Number`)) %>%
+Event2_recaps <- Event2_recaps_raw <- subset(Event2, !is.na(`Tag Number`)) %>%
   arrange(`Tag Number`)
-Event1_recaps <- subset(Event1, `Tag Number` %in% Event2_recaps$`Tag Number`) %>%
+Event1_recaps <- Event1_recaps_raw <- subset(Event1, `Tag Number` %in% Event2_recaps$`Tag Number`) %>%
   arrange(`Tag Number`)
 
 
@@ -192,6 +192,15 @@ sestrat(n1 = table(Event1$`Fork Length (mm)` >= 400),
        estimator="Chapman")
 
 ## tallies do not match 11/22 (missing 399-400cm corrected lengths)
+
+## 5/20/25 verify cap probabilities
+# first event
+table(Event2_recaps$`Fork Length Corrected (mm)` >= 400) /
+  table(Event2$`Fork Length Corrected (mm)` >= 400)
+
+# second event
+table(Event2_recaps$`Fork Length Corrected (mm)` >= 400) /
+  table(Event1$`Fork Length (mm)` >= 400)
 
 
 ## update 5/19/25 to verify stratified proportions

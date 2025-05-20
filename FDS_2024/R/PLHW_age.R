@@ -75,6 +75,10 @@ ASL_table(sex=cut(spawn_sample$Length[spawn_sample$Sex=="M"],
                   breaks=c(0,seq(305,485, by=20)),
                   right=FALSE))
 
+ASL_table(age=spawn_sample$Age)
+ASL_table(age=spawn_sample$Age[spawn_sample$Sex=="F"])
+ASL_table(age=spawn_sample$Age[spawn_sample$Sex=="M"])
+
 ASL_table(age=spawn_sample$Maturity)
 for(datei in sort(unique(spawn_sample$Date))) {
   print(datei)
@@ -104,6 +108,14 @@ sd(spawn_sample$Age[spawn_sample$Sex=="F"], na.rm=TRUE)
 mean(spawn_sample$Age[spawn_sample$Sex=="M"], na.rm=TRUE)
 sd(spawn_sample$Age[spawn_sample$Sex=="M"], na.rm=TRUE)
 
+# validating catch curve stuff
+nn <- as.numeric(table(factor(spawn_sample$Age, levels=7:35)))
+TT <- nn*(seq_along(nn)-1)
+s_hat <- sum(TT)/(sum(nn) + sum(TT) - 1)
+se_s_hat <- sqrt((sum(TT)/(sum(nn)+sum(TT)-1)) *
+                   ((sum(TT)/(sum(nn)+sum(TT)-1)) - ((sum(TT)-1)/(sum(nn)+sum(TT)-2))))
+s_hat
+s_hat + c(-2,2)*se_s_hat
 
 ############# Tabulating summary statistics for lengths by age bin ##########
 
