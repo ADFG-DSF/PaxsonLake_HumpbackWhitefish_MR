@@ -48,6 +48,16 @@ Event1_recaps <- Event1_recaps_raw <- subset(Event1, `Tag Number` %in% Event2_re
   arrange(`Tag Number`)
 
 
+# 5/21/25 - validating report table
+ASL_table(length=Event1$`Fork Length (mm)`)
+sd(Event1$`Fork Length (mm)`)
+ASL_table(length=Event2$`Fork Length (mm)`)
+sd(Event2$`Fork Length (mm)`)
+ASL_table(length=Event2_recaps$`Fork Length (mm)`)
+sd(Event2_recaps$`Fork Length (mm)`)
+ASL_table(length=Event1_recaps$`Fork Length (mm)`)
+sd(Event1_recaps$`Fork Length (mm)`)
+
 
 ### reproduce KS tests
 # reproduce growth correction
@@ -227,7 +237,13 @@ segments(x0=1:nrow(the_tbl),
          y0=the_tbl$phat - qnorm(0.95)*the_tbl$se_phat,
          y1=the_tbl$phat + qnorm(0.95)*the_tbl$se_phat)
 
-
+write_output <- FALSE # whether to write output to external file
+if(write_output) {
+  the_tbl$phat_lwr95 <- the_tbl$phat - 2*the_tbl$se_phat
+  the_tbl$phat_upr95 <- the_tbl$phat + 2*the_tbl$se_phat
+  the_tbl1 <- the_tbl[,c(1:3,6:7,4:5)]
+  write.csv(the_tbl1, file="FDS_2024/R_output/strat_length_props.csv")
+}
 
 # As of 11/25, April attempted to reconcile the methods by ROUNDing the corrected lengths
 # This is an investigation of whether that worked
