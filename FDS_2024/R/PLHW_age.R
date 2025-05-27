@@ -85,6 +85,8 @@ for(datei in sort(unique(spawn_sample$Date))) {
   print(ASL_table(sex=spawn_sample$Maturity[spawn_sample$Date==datei]))
 }
 
+
+
 ASL_table(length=spawn_sample$Age)
 mean(spawn_sample$Age, na.rm=TRUE)
 sd(spawn_sample$Age, na.rm=TRUE)
@@ -107,6 +109,23 @@ mean(spawn_sample$Age[spawn_sample$Sex=="F"], na.rm=TRUE)
 sd(spawn_sample$Age[spawn_sample$Sex=="F"], na.rm=TRUE)
 mean(spawn_sample$Age[spawn_sample$Sex=="M"], na.rm=TRUE)
 sd(spawn_sample$Age[spawn_sample$Sex=="M"], na.rm=TRUE)
+
+
+for(datei in sort(unique(spawn_sample$Date))) {
+  print(datei)
+  print(mean(spawn_sample$Length[spawn_sample$Date==datei], na.rm=TRUE))
+  print(sd(spawn_sample$Length[spawn_sample$Date==datei], na.rm=TRUE))
+}
+for(datei in sort(unique(spawn_sample$Date))) {
+  print("---")
+  print(mean(spawn_sample$Length[spawn_sample$Date==datei & spawn_sample$Sex=="F"], na.rm=TRUE))
+  print(sd(spawn_sample$Length[spawn_sample$Date==datei & spawn_sample$Sex=="F"], na.rm=TRUE))
+}
+for(datei in sort(unique(spawn_sample$Date))) {
+  print("---")
+  print(mean(spawn_sample$Length[spawn_sample$Date==datei & spawn_sample$Sex=="M"], na.rm=TRUE))
+  print(sd(spawn_sample$Length[spawn_sample$Date==datei & spawn_sample$Sex=="M"], na.rm=TRUE))
+}
 
 # validating catch curve stuff
 nn <- as.numeric(table(factor(spawn_sample$Age, levels=7:35)))
