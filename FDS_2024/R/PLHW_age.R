@@ -117,6 +117,20 @@ se_s_hat <- sqrt((sum(TT)/(sum(nn)+sum(TT)-1)) *
 s_hat
 s_hat + c(-2,2)*se_s_hat
 
+as_lm <- lm(log(nn[nn!=0])~seq_along(nn)[nn!=0])
+summary(as_lm)
+exp(as_lm$coefficients)
+
+# ages >=345 from LVB
+Linf <- 412.915809266251
+k <- 0.0447266519847725
+t0 <- -24.7577292533804
+t0 - log(1-(345/Linf))/k
+
+ages <- 7:35
+
+
+
 ############# Tabulating summary statistics for lengths by age bin ##########
 
 # defining breaks for age and length
