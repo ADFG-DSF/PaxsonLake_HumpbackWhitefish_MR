@@ -28,12 +28,13 @@ or explore aspects of existing scripts.  These include:
 
 **1_PLHW_MR_data.R**: This script reads the Mark-Recapture data and validates the Excel-based analysis conducted 
 by Corey Schwanke and April Behr.  No analysis outputs are directly generated here, but inferences match those 
-produced in Excel.
+produced in Excel.  Additional sections have been inserted to validate numbers in the report text.
 
 **1a_MRcheck2.R**: Additional checks in a fresh script.  This script has no real value and should probably be deleted.
 
 **PLHW_age.R**: This script conducts all analysis specific to Age, Length, and Weight of fish in the spawning sample.
-This script is used for analysis, and ALL analysis outputs are generated here.
+This script is used for analysis, and ALL analysis outputs are generated here.  
+Additional sections have been inserted to validate numbers in the report text.
 
 **2a_lengthage_sensitivity.R**: An additional script exploring the possible existence of data points that were 
 unusually influential to the fit of the Length ~ Age relationship.  Each data point was removed in turn and the 
@@ -55,6 +56,8 @@ given by the numbers of tables and figures from the report.
 **Tab10a.csv** and **Tab10b.csv** give two versions of summary statistics of Lengths for each Age bin 
 
 **Tab11_xx** gives a summary of the parameter estimates from model **xx**
+
+**strat_length_props.csv** gives a table of stratified estimates of length proportions
 
 
 ### flat_data

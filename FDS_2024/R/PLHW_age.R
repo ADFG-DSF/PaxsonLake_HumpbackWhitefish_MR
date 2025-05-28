@@ -136,17 +136,37 @@ se_s_hat <- sqrt((sum(TT)/(sum(nn)+sum(TT)-1)) *
 s_hat
 s_hat + c(-2,2)*se_s_hat
 
-as_lm <- lm(log(nn[nn!=0])~seq_along(nn)[nn!=0])
-summary(as_lm)
-exp(as_lm$coefficients)
+# re-expressing as exponential decay model
+as_lm0 <- lm(log(nn[nn!=0])~seq_along(nn)[nn!=0])
+summary(as_lm0)
+exp(as_lm0$coefficients) # basically equivalent estimate of annual mortality!
 
-# ages >=345 from LVB
+# roughly estimating which ages are >=345mm from LVB
 Linf <- 412.915809266251
 k <- 0.0447266519847725
 t0 <- -24.7577292533804
-t0 - log(1-(345/Linf))/k
 
+# back-calculated from LVB function
+t0 - log(1-(345/Linf))/k  # >=16
+
+# exponential decay model again, but with actual ages as x-vars
 ages <- 7:35
+as_lm <- lm(log(nn[nn!=0]) ~ ages[nn!=0])
+summary(as_lm)
+exp(as_lm$coefficients)
+
+plot(x=ages, y=nn)
+curve(exp(as_lm$coefficients[1] + as_lm$coefficients[2]*x), add=T)
+
+# exp(predict(as_lm))
+nnpreds <- exp(as_lm$coefficients[1] + as_lm$coefficients[2]*ages)
+
+# roughly estimated abundance by age
+Nhat_age <- 116417/sum(nnpreds[ages>=16])*nnpreds
+
+# summing estimated abundance by age, over big fish & small fish
+sum(Nhat_age[ages>=16])
+sum(Nhat_age[ages<16 & ages>=min(ages)])
 
 
 
